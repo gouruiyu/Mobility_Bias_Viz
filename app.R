@@ -5,14 +5,18 @@ library(sf)
 library(ggplot2)
 library(dplyr)
 library(lubridate)
+source("biz_data_clean.R")
 
 # Load data
 cams <- read.csv("data/surrey_desc.csv")
 cams_data <- read.csv("data/surrey_data.csv")
+bizs<-read.csv('data/all_businessess.csv')%>%
+  st_as_sf(coords = c("lon_pc", "lat_pc"), crs = 4326)
 
-# Icon assets
+
+# Camera Icon asset
 camIcon <- makeIcon(
-  iconUrl = "https://img.icons8.com/material-outlined/24/000000/wallmount-camera.png",
+  iconUrl = "https://img.icons8.com/plasticine/100/000000/camera--v1.png",
   iconWidth = 20, iconHeight = 20,
   iconAnchorX = 10, iconAnchorY = 10
 )
@@ -26,7 +30,29 @@ surreyLng <- -122.8
 basemap <- leaflet(data = cams, options = leafletOptions(minZoom = 10, maxZoom = 18)) %>%
   setView(lng = -122.8, lat = 49.15, zoom = 12) %>%
   addMarkers(~longitude, ~latitude, layerId = ~as.character(station_name), popup = ~as.character(station_name), icon = camIcon) %>%
-  addTiles()
+  addProviderTiles(providers$CartoDB.Positron)%>%
+  addLayersControl(
+    position = "bottomright",
+    overlayGroups = c("Stores",
+                      "Food and Restaurants",
+                      "Liquor Stores",
+                      "Health and Medicine",
+                      "Business and Finance",
+                      "Services"),
+    options=layersControlOptions(collapsed = TRUE))%>%
+  hideGroup(c("Stores",
+              "Food and Restaurants",
+              "Liquor Stores",
+              "Health and Medicine",
+              "Business and Finance",
+              "Services"))%>%
+  addMarkers(data=stores, popup = ~as.character(BusinessName),icon= storeIcon,group="Stores",clusterOptions = markerClusterOptions(maxClusterRadius = 30,showCoverageOnHover = FALSE))%>%
+  addMarkers(data=food.and.restaurant,popup = ~as.character(BusinessName), icon=restaurantIcon, group= "Food and Restaurants",clusterOptions = markerClusterOptions(maxClusterRadius = 30,showCoverageOnHover = FALSE))%>%
+  addMarkers(data=alcohol,popup = ~as.character(BusinessName), icon= liquorIcon, group= "Liquor Stores",clusterOptions = markerClusterOptions(maxClusterRadius = 30,showCoverageOnHover = FALSE))%>%
+  addMarkers(data=health_medicine, popup = ~as.character(BusinessName),icon= healthIcon, group= "Health and Medicine",clusterOptions = markerClusterOptions(maxClusterRadius = 30,showCoverageOnHover = FALSE))%>%
+  addMarkers(data=finances,popup = ~as.character(BusinessName),icon= bizIcon, group="Business and Finance",clusterOptions = markerClusterOptions(maxClusterRadius = 30,showCoverageOnHover = FALSE))%>%
+  addMarkers(data=services,popup = ~as.character(BusinessName),icon= serviceIcon,group= "Services",
+             clusterOptions = markerClusterOptions(showCoverageOnHover = FALSE))
 
 plotCarCountWithTime <- function(df, start, end) {
   if (nrow(df) == 0) {
