@@ -21,13 +21,15 @@ camIcon <- makeIcon(
 )
 
 # Other Constants
-surreyLat <- 49.15
-surreyLng <- -122.8
+SURREY_LAT <- 49.15
+SURREY_LNG <- -122.8
+ZOOM_MIN = 10
+ZOOM_MAX = 18
 
 ########## UI ##########
 
-basemap <- leaflet(data = cams, options = leafletOptions(minZoom = 10, maxZoom = 18)) %>%
-  setView(lng = -122.8, lat = 49.15, zoom = 12) %>%
+basemap <- leaflet(data = cams, options = leafletOptions(minZoom = ZOOM_MIN, maxZoom = ZOOM_MAX)) %>%
+  setView(lng = SURREY_LNG, lat = SURREY_LAT, zoom = (ZOOM_MIN+ZOOM_MAX)/2) %>%
   addMarkers(~longitude, ~latitude, layerId = ~as.character(station_name), popup = ~as.character(station_name), icon = camIcon) %>%
   addProviderTiles(providers$CartoDB.Positron)%>%
   addLayersControl(
@@ -88,7 +90,7 @@ ui <- navbarPage("Unbiased Mobility", id="nav",
                                       h2("Traffic explorer"),
                                       selectInput(inputId = "camid", 
                                                   label = "Camera ID", 
-                                                  choices = cams$station_name, # TODO: load 364 cameras from csv 
+                                                  choices = cams$station_name,
                                                   multiple = FALSE),
                                       plotOutput("linePlotCarCounts", height = "200")))))
 
@@ -100,27 +102,38 @@ server <- function(input, output, session) {
   # current selected camera
   current_cam <- reactiveValues()
   
+  # current map center
+  map_view <- reactiveValues()
+  
+  # Update current camera according to selected input
+  observeEvent(input$camid, {
+    if (is.null(input$camid)) return()
+    current_cam$id <- input$camid
+  })
+  
+  # Update current camera according to marker click
   observeEvent(input$basemap_marker_click, {
     marker <- input$basemap_marker_click
-    if (is.null(marker$id))
-      return()
-    
-    current_cam <- cams_data %>%
-      filter(station == marker$id)
-    
-    isolate({
+    if (is.null(marker$id)) return()
+    current_cam$id <- marker$id
+    isolate({ 
       updateSelectInput(session, 'camid', selected = marker$id)
     })
-
-      output$linePlotCarCounts <- renderPlot({
-        plotCarCountWithTime(current_cam, 
-                             as.POSIXct("2020-12-01 00:00:00"), # input$startHour, 
-                             as.POSIXct("2020-12-07 23:59:59")) # input$endHour)
-        
-      })
-
   })
-
+  
+  # Update count data based on selected camera
+  observe({
+    data <- cams_data %>% filter(station == current_cam$id)
+    current_cam$data <- data
+  })
+  
+  
+  output$linePlotCarCounts <- renderPlot({
+    plotCarCountWithTime(current_cam$data, 
+                         as.POSIXct("2020-12-01 00:00:00"), # input$startHour, 
+                         as.POSIXct("2020-12-07 23:59:59")) # input$endHour)
+    
+  })
 }
 
 shinyApp(ui = ui, server = server)
