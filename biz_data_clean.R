@@ -1,14 +1,8 @@
-library(shiny)
-library(shinydashboard)
-library(leaflet)
-library(sf)
-library(ggplot2)
-library(dplyr)
-library(lubridate)
-
+bizs<-read.csv('data/all_businessess.csv')%>%
+  st_as_sf(coords = c("lon_pc", "lat_pc"), crs = 4326)
 
 ######Sorting Business Data By Sector #####
-stores<- bizs%>%
+stores<- bizs %>%
   filter(LicenceDescription %in% c("Retail Merchant - 0 to 2 Employees",
                                    "Retail Merchant - 10 to 19 Employees",
                                    "Retail Merchant - 20 or More Employees",
@@ -20,7 +14,7 @@ stores<- bizs%>%
 
 
 
-food.and.restaurant<-bizs%>%
+food.and.restaurant<-bizs %>%
   filter(LicenceDescription %in% c("Restaurant-No Alcohol",
                                    "Food Primary-Class B Dining Lounge",
                                    "Food Primary-Class B Dining Room",
@@ -31,7 +25,7 @@ food.and.restaurant<-bizs%>%
                                    "Concession Stand"))%>%
   filter(!(BusinessName==""))
 
-alcohol<-bizs%>%
+alcohol<-bizs %>%
   filter(LicenceDescription %in% c("Liquor Licensee Retail Store",
                                    "Liquor Primary-Class C Cabaret",
                                    "Liquor Primary-Class D Neighbourhood Pub",
@@ -40,7 +34,7 @@ alcohol<-bizs%>%
                                    "Liquor Primary- Class A Pub"))%>%
   filter(!(BusinessName==""))
 
-health_medicine<-bizs%>%
+health_medicine<-bizs %>%
   filter(LicenceDescription %in% c("Medical Laboratory",
                                    "Methadone Dispensary",
                                    "Nursery",
@@ -58,7 +52,7 @@ health_medicine<-bizs%>%
                                    "Fitness Personal Trainer"))%>%
   filter(!(BusinessName==""))
 
-finances<-bizs%>%
+finances<-bizs %>%
   filter(LicenceDescription %in% c("Financial Agent",
                                    "Financial Planning/Consultant",
                                    "Pawn Broker",
@@ -79,7 +73,7 @@ finances<-bizs%>%
   filter(!(BusinessName==""))
 
 `%notin%` <- purrr::negate(`%in%`)
-services<-bizs%>%
+services<-bizs %>%
   filter(LicenceDescription %notin% c("Liquor Licensee Retail Store",
                                       "Liquor Primary-Class C Cabaret",
                                       "Liquor Primary-Class D Neighbourhood Pub",
@@ -134,35 +128,35 @@ services<-bizs%>%
                                       "Flea Market"))%>%
   filter(!(BusinessName==""))
 
-restaurantIcon<-makeIcon(
+restaurantIcon <- makeIcon(
   iconUrl = "https://img.icons8.com/plasticine/100/4a90e2/restaurant.png",
   iconWidth = 20, iconHeight= 20,
   iconAnchorX = 10, iconAnchorY = 10
 )
-storeIcon<-makeIcon(
+storeIcon <- makeIcon(
   iconUrl = "https://img.icons8.com/plasticine/100/4a90e2/buy--v1.png",
   iconWidth = 20, iconHeight= 20,
   iconAnchorX = 10, iconAnchorY = 10
 )
-liquorIcon<-makeIcon(
+liquorIcon <- makeIcon(
   iconUrl = "https://img.icons8.com/cotton/64/4a90e2/liquor-shelf--v1.png",
   iconWidth = 20, iconHeight= 20,
   iconAnchorX = 10, iconAnchorY = 10
 )
 
-healthIcon<-makeIcon(
+healthIcon <- makeIcon(
   iconUrl = "https://img.icons8.com/plasticine/100/4a90e2/stethoscope.png",
   iconWidth = 20, iconHeight= 20,
   iconAnchorX = 10, iconAnchorY = 10
 )
 
-bizIcon<-makeIcon(
+bizIcon <- makeIcon(
   iconUrl = "https://img.icons8.com/plasticine/100/4a90e2/sell-property.png",
   iconWidth = 20, iconHeight= 20,
   iconAnchorX = 10, iconAnchorY = 10
 )
 
-serviceIcon<-makeIcon(
+serviceIcon <- makeIcon(
   iconUrl = "https://img.icons8.com/plasticine/100/4a90e2/service.png",
   iconWidth = 20, iconHeight= 20,
   iconAnchorX = 10, iconAnchorY = 10

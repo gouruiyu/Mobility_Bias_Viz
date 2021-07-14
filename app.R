@@ -5,13 +5,12 @@ library(sf)
 library(ggplot2)
 library(dplyr)
 library(lubridate)
+
 source("biz_data_clean.R")
 
 # Load data
 cams <- read.csv("data/surrey_desc.csv")
 cams_data <- read.csv("data/surrey_data.csv")
-bizs<-read.csv('data/all_businessess.csv')%>%
-  st_as_sf(coords = c("lon_pc", "lat_pc"), crs = 4326)
 
 
 # Camera Icon asset
