@@ -4,6 +4,7 @@ library(leaflet)
 library(sf)
 library(ggplot2)
 library(dplyr)
+library(lubridate)
 
 # Load data
 cams <- read.csv("data/surrey_desc.csv")
@@ -27,6 +28,29 @@ basemap <- leaflet(data = cams, options = leafletOptions(minZoom = 10, maxZoom =
   addMarkers(~longitude, ~latitude, layerId = ~as.character(station_name), popup = ~as.character(station_name), icon = camIcon) %>%
   addTiles()
 
+plotCarCountWithTime <- function(df, start, end) {
+  if (nrow(df) == 0) {
+    return(ggplot() + # Draw ggplot2 plot with text only
+             annotate("text",
+                      x = 1,
+                      y = 1,
+                      size = 4,
+                      color = "Red",
+                      label = "The data for this camera is not available.") + 
+             theme_void())
+  }
+  df$time <- as.POSIXct(df$time)
+  df <- df %>% filter(time %within% interval(start, end))
+  myplot <- ggplot(data=df, aes(y=car_count, x=time)) +
+    geom_line() +
+    geom_smooth() +
+    scale_x_datetime(date_breaks = "24 hours", date_labels = "%Y-%m-%d %H:%M") +
+    xlab("Time(hour)") +
+    ylab("Car Count") +
+    theme(axis.text.x = element_text(angle = 60, hjust = 1))
+  return(myplot)
+}
+
 ui <- navbarPage("Unbiased Mobility", id="nav",
            
            tabPanel("Map",
@@ -41,8 +65,7 @@ ui <- navbarPage("Unbiased Mobility", id="nav",
                                                   label = "Camera ID", 
                                                   choices = cams$station_name, # TODO: load 364 cameras from csv 
                                                   multiple = FALSE),
-                                      plotOutput("linePlotCarCounts", height = "200"))))
-)
+                                      plotOutput("linePlotCarCounts", height = "200")))))
 
 ########## Server ##########
 
@@ -63,17 +86,14 @@ server <- function(input, output, session) {
     isolate({
       updateSelectInput(session, 'camid', selected = marker$id)
     })
-  
-    output$linePlotCarCounts <- renderPlot({
-      ggplot(data=current_cam, aes(y=car_count, x=as.POSIXct(time))) +
-        geom_line() +
-        scale_x_datetime(date_breaks = "24 hours", date_labels = "%Y-%m-%d %H:%M") +
-        xlab("Time(hour)") +
-        ylab("Car Count") +
-        theme(axis.text.x = element_text(angle = 60, hjust = 1), axis.title.y.right = element_text(color = "blue"))
+
+      output$linePlotCarCounts <- renderPlot({
+        plotCarCountWithTime(current_cam, 
+                             as.POSIXct("2020-12-01 00:00:00"), # input$startHour, 
+                             as.POSIXct("2020-12-07 23:59:59")) # input$endHour)
         
-    })
-    
+      })
+
   })
 
 }
