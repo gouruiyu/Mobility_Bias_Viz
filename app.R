@@ -14,7 +14,7 @@ bizs<-read.csv('data/all_businessess.csv')%>%
   st_as_sf(coords = c("lon_pc", "lat_pc"), crs = 4326)
 
 
-# Icon assets
+# Camera Icon asset
 camIcon <- makeIcon(
   iconUrl = "https://img.icons8.com/plasticine/100/000000/camera--v1.png",
   iconWidth = 20, iconHeight = 20,
