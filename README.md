@@ -17,7 +17,7 @@ Unbiased mobility viz is a visualization spin-off from the [Vancom X UBC DSSG un
 1. Create a feature branch from there.
 1. Create a **draft** PR from this feature branch linked to the issue.
 1. Local development.
-1. (Optional) resolve merge conflicts. 
+1. Pull merge any changes in dev branch, resolve merge conflicts if any.
 1. Request for code reviews. Go to Step 1 for next issue while waiting for reviewers.
 1. Make changes according to code reviews until approval.
 1. Merge the feature branch into dev .
