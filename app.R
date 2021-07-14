@@ -20,7 +20,8 @@ stores<- bizs%>%
                                    "Retail Merchant - 3 to 5 Employees",
                                    "Retail Merchant - 6 to 9 Employees",
                                    "Wholesale",
-                                   "Flea Market"))
+                                   "Flea Market"))%>%
+  filter(!(BusinessName==""))
 
 
 
@@ -32,7 +33,8 @@ food.and.restaurant<-bizs%>%
                                    "Bakery",
                                    "Bread & Breakfast",
                                    "Caterer",
-                                   "Concession Stand"))
+                                   "Concession Stand"))%>%
+  filter(!(BusinessName==""))
 
 alcohol<-bizs%>%
   filter(LicenceDescription %in% c("Liquor Licensee Retail Store",
@@ -40,7 +42,8 @@ alcohol<-bizs%>%
                                    "Liquor Primary-Class D Neighbourhood Pub",
                                    "Liquor Primary-Class E Stadium",
                                    "Liquor Primary-Class F Marine Pub",
-                                   "Liquor Primary- Class A Pub"))
+                                   "Liquor Primary- Class A Pub"))%>%
+  filter(!(BusinessName==""))
 
 health_medicine<-bizs%>%
   filter(LicenceDescription %in% c("Medical Laboratory",
@@ -57,7 +60,8 @@ health_medicine<-bizs%>%
                                    "Denture Clinic",
                                    "Health Care Consultant",
                                    "Part Time Medical Practitioner",
-                                   "Fitness Personal Trainer"))
+                                   "Fitness Personal Trainer"))%>%
+  filter(!(BusinessName==""))
 
 finances<-bizs%>%
   filter(LicenceDescription %in% c("Financial Agent",
@@ -76,7 +80,8 @@ finances<-bizs%>%
                                    "Cheque Cashing Centre",
                                    "Customs Broker",
                                    "Currency Exchange",
-                                   "Business Services Office"))
+                                   "Business Services Office"))%>%
+  filter(!(BusinessName==""))
 
 `%notin%` <- purrr::negate(`%in%`)
 services<-bizs%>%
@@ -131,7 +136,8 @@ services<-bizs%>%
                                       "Retail Merchant - 3 to 5 Employees",
                                       "Retail Merchant - 6 to 9 Employees",
                                       "Wholesale",
-                                      "Flea Market"))
+                                      "Flea Market"))%>%
+  filter(!(BusinessName==""))
 
 # Icon assets
 camIcon <- makeIcon(
@@ -197,12 +203,12 @@ basemap <- leaflet(data = cams, options = leafletOptions(minZoom = 10, maxZoom =
               "Health and Medicine",
               "Business and Finance",
               "Services"))%>%
-  addMarkers(data=stores, icon= storeIcon,group="Stores",clusterOptions = markerClusterOptions(maxClusterRadius = 30,showCoverageOnHover = FALSE))%>%
-  addMarkers(data=food.and.restaurant, icon=restaurantIcon, group= "Food and Restaurants",clusterOptions = markerClusterOptions(maxClusterRadius = 30,showCoverageOnHover = FALSE))%>%
-  addMarkers(data=alcohol, icon= liquorIcon, group= "Liquor Stores",clusterOptions = markerClusterOptions(maxClusterRadius = 30,showCoverageOnHover = FALSE))%>%
-  addMarkers(data=health_medicine, icon= healthIcon, group= "Health and Medicine",clusterOptions = markerClusterOptions(maxClusterRadius = 30,showCoverageOnHover = FALSE))%>%
-  addMarkers(data=finances,icon= bizIcon, group="Business and Finance",clusterOptions = markerClusterOptions(maxClusterRadius = 30,showCoverageOnHover = FALSE))%>%
-  addMarkers(data=services,icon= serviceIcon,group= "Services",
+  addMarkers(data=stores, popup = ~as.character(BusinessName),icon= storeIcon,group="Stores",clusterOptions = markerClusterOptions(maxClusterRadius = 30,showCoverageOnHover = FALSE))%>%
+  addMarkers(data=food.and.restaurant,popup = ~as.character(BusinessName), icon=restaurantIcon, group= "Food and Restaurants",clusterOptions = markerClusterOptions(maxClusterRadius = 30,showCoverageOnHover = FALSE))%>%
+  addMarkers(data=alcohol,popup = ~as.character(BusinessName), icon= liquorIcon, group= "Liquor Stores",clusterOptions = markerClusterOptions(maxClusterRadius = 30,showCoverageOnHover = FALSE))%>%
+  addMarkers(data=health_medicine, popup = ~as.character(BusinessName),icon= healthIcon, group= "Health and Medicine",clusterOptions = markerClusterOptions(maxClusterRadius = 30,showCoverageOnHover = FALSE))%>%
+  addMarkers(data=finances,popup = ~as.character(BusinessName),icon= bizIcon, group="Business and Finance",clusterOptions = markerClusterOptions(maxClusterRadius = 30,showCoverageOnHover = FALSE))%>%
+  addMarkers(data=services,popup = ~as.character(BusinessName),icon= serviceIcon,group= "Services",
              clusterOptions = markerClusterOptions(showCoverageOnHover = FALSE))
 
 plotCarCountWithTime <- function(df, start, end) {
