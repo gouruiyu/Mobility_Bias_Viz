@@ -198,10 +198,10 @@ basemap <- leaflet(data = cams, options = leafletOptions(minZoom = 10, maxZoom =
               "Business and Finance",
               "Services"))%>%
   addMarkers(data=stores, icon= storeIcon,group="Stores",clusterOptions = markerClusterOptions(maxClusterRadius = 30,showCoverageOnHover = FALSE))%>%
-  addMarkers(data=food.and.restaurant, icon=restaurantIcon, group= "Food and Restaurants")%>%
-  addMarkers(data=alcohol, icon= liquorIcon, group= "Liquor Stores")%>%
-  addMarkers(data=health_medicine, icon= healthIcon, group= "Health and Medicine")%>%
-  addMarkers(data=finances,icon= bizIcon, group="Business and Finance")%>%
+  addMarkers(data=food.and.restaurant, icon=restaurantIcon, group= "Food and Restaurants",clusterOptions = markerClusterOptions(maxClusterRadius = 30,showCoverageOnHover = FALSE))%>%
+  addMarkers(data=alcohol, icon= liquorIcon, group= "Liquor Stores",clusterOptions = markerClusterOptions(maxClusterRadius = 30,showCoverageOnHover = FALSE))%>%
+  addMarkers(data=health_medicine, icon= healthIcon, group= "Health and Medicine",clusterOptions = markerClusterOptions(maxClusterRadius = 30,showCoverageOnHover = FALSE))%>%
+  addMarkers(data=finances,icon= bizIcon, group="Business and Finance",clusterOptions = markerClusterOptions(maxClusterRadius = 30,showCoverageOnHover = FALSE))%>%
   addMarkers(data=services,icon= serviceIcon,group= "Services",
              clusterOptions = markerClusterOptions(showCoverageOnHover = FALSE))
 
