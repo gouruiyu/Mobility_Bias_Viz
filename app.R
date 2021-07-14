@@ -34,7 +34,7 @@ plotCarCountWithTime <- function(df, start, end) {
              annotate("text",
                       x = 1,
                       y = 1,
-                      size = 8,
+                      size = 4,
                       color = "Red",
                       label = "The data for this camera is not available.") + 
              theme_void())
@@ -43,7 +43,7 @@ plotCarCountWithTime <- function(df, start, end) {
   df <- df %>% filter(time %within% interval(start, end))
   myplot <- ggplot(data=df, aes(y=car_count, x=time)) +
     geom_line() +
-    scale_x_datetime(date_breaks = "1 hour", date_labels = "%Y-%m-%d %H:%M") +
+    scale_x_datetime(date_breaks = "24 hours", date_labels = "%Y-%m-%d %H:%M") +
     xlab("Time(hour)") +
     ylab("Car Count") +
     theme(axis.text.x = element_text(angle = 60, hjust = 1), axis.title.y.right = element_text(color = "blue"))
