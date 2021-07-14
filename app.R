@@ -39,14 +39,14 @@ ui <- navbarPage("Unbiased Mobility", id="nav",
                                       h2("Traffic explorer"),
                                       selectInput(inputId = "camid", 
                                                   label = "Camera ID", 
-                                                  choices = c("103", "104", "enc_104_cityparkway_cam1", "TODO"), # TODO: load 364 cameras from csv 
+                                                  choices = cams$station_name, # TODO: load 364 cameras from csv 
                                                   multiple = FALSE),
                                       plotOutput("linePlotCarCounts", height = "200"))))
 )
 
 ########## Server ##########
 
-server <- function(input, output) {
+server <- function(input, output, session) {
   output$basemap <- renderLeaflet(basemap)
   
   # current selected camera
@@ -59,6 +59,10 @@ server <- function(input, output) {
     
     current_cam <- cams_data %>%
       filter(station == marker$id)
+    
+    isolate({
+      updateSelectInput(session, 'camid', selected = marker$id)
+    })
   
     output$linePlotCarCounts <- renderPlot({
       ggplot(data=current_cam, aes(y=car_count, x=as.POSIXct(time))) +
