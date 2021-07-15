@@ -138,7 +138,7 @@ server <- function(input, output, session) {
     })
 
       output$linePlotVehicleCounts <- renderPlot({
-        plotVehicleCountWithTime(current_cam, 
+        plotVehicleCountWithTime(current_cam$data, 
                              input$timeRange[1],
                              input$timeRange[2],
                              input$vehicleType)
@@ -164,13 +164,7 @@ server <- function(input, output, session) {
             lat = map_view$lat,
             zoom = map_view$zoom)
   })
-  
-  output$linePlotCarCounts <- renderPlot({
-    plotCarCountWithTime(current_cam$data, 
-                         as.POSIXct("2020-12-01 00:00:00"), # input$startHour, 
-                         as.POSIXct("2020-12-07 23:59:59")) # input$endHour)
-    
-  })
+
 }
 
 shinyApp(ui = ui, server = server)
