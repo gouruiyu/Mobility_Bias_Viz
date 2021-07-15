@@ -127,6 +127,18 @@ server <- function(input, output, session) {
     current_cam$data <- data
   })
   
+  # Smooth pan map view based on camera selected
+  observeEvent(current_cam$id, {
+    data <- cams %>% filter(station_name == current_cam$id)
+    map_view$lng = data$longitude
+    map_view$lat = data$latitude
+    map_view$zoom = max(input$basemap_zoom, (ZOOM_MAX + ZOOM_MIN)/2)
+    leafletProxy('basemap', session) %>%
+      flyTo('basemap', 
+            lng = map_view$lng,
+            lat = map_view$lat,
+            zoom = map_view$zoom)
+  })
   
   output$linePlotCarCounts <- renderPlot({
     plotCarCountWithTime(current_cam$data, 
