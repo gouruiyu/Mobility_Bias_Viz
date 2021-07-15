@@ -16,6 +16,8 @@ data/* folder is gitignored for confidential concerns. The code expects the foll
 - surrey_data.csv 
 - all_businesses.csv
 
+(For dev only, subject to change)
+
 
 ## Development Workflow
 
