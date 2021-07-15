@@ -21,14 +21,17 @@ camIcon <- makeIcon(
 )
 
 # Other Constants
-surreyLat <- 49.15
-surreyLng <- -122.8
-vehicleTypes <- c("car_count", "truck_count", "bus_count", "bicycle_count", "motorcycle_count", "person_count")
+
+VEHICLE_TYPES <- c("car_count", "truck_count", "bus_count", "bicycle_count", "motorcycle_count", "person_count")
+SURREY_LAT <- 49.15
+SURREY_LNG <- -122.8
+ZOOM_MIN = 10
+ZOOM_MAX = 18
 
 ########## UI ##########
 
-basemap <- leaflet(data = cams, options = leafletOptions(minZoom = 10, maxZoom = 18)) %>%
-  setView(lng = -122.8, lat = 49.15, zoom = 12) %>%
+basemap <- leaflet(data = cams, options = leafletOptions(minZoom = ZOOM_MIN, maxZoom = ZOOM_MAX)) %>%
+  setView(lng = SURREY_LNG, lat = SURREY_LAT, zoom = (ZOOM_MIN+ZOOM_MAX)/2) %>%
   addMarkers(~longitude, ~latitude, layerId = ~as.character(station_name), popup = ~as.character(station_name), icon = camIcon) %>%
   addProviderTiles(providers$CartoDB.Positron)%>%
   addLayersControl(
@@ -89,11 +92,11 @@ ui <- navbarPage("Unbiased Mobility", id="nav",
                                       h2("Traffic explorer"),
                                       selectInput(inputId = "camid", 
                                                   label = "Camera ID", 
-                                                  choices = cams$station_name, # TODO: load 364 cameras from csv 
+                                                  choices = cams$station_name,
                                                   multiple = FALSE),
                                       selectInput(inputId = "vehicleType", 
                                                   label = "Vehicle Type", 
-                                                  choices = vehicleTypes,
+                                                  choices = VEHICLE_TYPES,
                                                   multiple = FALSE),
                                       plotOutput("linePlotVehicleCounts", height = "200")))
                     ),
@@ -116,15 +119,21 @@ server <- function(input, output, session) {
   # current selected camera
   current_cam <- reactiveValues()
   
+  # current map center
+  map_view <- reactiveValues()
+  
+  # Update current camera according to selected input
+  observeEvent(input$camid, {
+    if (is.null(input$camid)) return()
+    current_cam$id <- input$camid
+  })
+  
+  # Update current camera according to marker click
   observeEvent(input$basemap_marker_click, {
     marker <- input$basemap_marker_click
-    if (is.null(marker$id))
-      return()
-    
-    current_cam <- cams_data %>%
-      filter(station == marker$id)
-    
-    isolate({
+    if (is.null(marker$id)) return()
+    current_cam$id <- marker$id
+    isolate({ 
       updateSelectInput(session, 'camid', selected = marker$id)
     })
 
@@ -135,9 +144,33 @@ server <- function(input, output, session) {
                              input$vehicleType)
         
       })
-
   })
-
+  
+  # Update count data based on selected camera
+  observe({
+    data <- cams_data %>% filter(station == current_cam$id)
+    current_cam$data <- data
+  })
+  
+  # Smooth pan map view based on camera selected
+  observeEvent(current_cam$id, {
+    data <- cams %>% filter(station_name == current_cam$id)
+    map_view$lng = data$longitude
+    map_view$lat = data$latitude
+    map_view$zoom = max(input$basemap_zoom, (ZOOM_MAX + ZOOM_MIN)/2)
+    leafletProxy('basemap', session) %>%
+      flyTo('basemap', 
+            lng = map_view$lng,
+            lat = map_view$lat,
+            zoom = map_view$zoom)
+  })
+  
+  output$linePlotCarCounts <- renderPlot({
+    plotCarCountWithTime(current_cam$data, 
+                         as.POSIXct("2020-12-01 00:00:00"), # input$startHour, 
+                         as.POSIXct("2020-12-07 23:59:59")) # input$endHour)
+    
+  })
 }
 
 shinyApp(ui = ui, server = server)
