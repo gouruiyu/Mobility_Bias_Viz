@@ -7,10 +7,13 @@ library(dplyr)
 library(lubridate)
 
 source("biz_data_clean.R")
+source("heatmap_function.R")
 
 # Load data
 cams <- read.csv("data/surrey_desc.csv")
 cams_data <- read.csv("data/surrey_data.csv")
+heatmap_data<-render_heatmap_df(cams_data)
+
 
 
 # Camera Icon asset
@@ -28,11 +31,16 @@ SURREY_LNG <- -122.8
 ZOOM_MIN = 10
 ZOOM_MAX = 18
 
+
 ########## UI ##########
+
+
 
 basemap <- leaflet(data = cams, options = leafletOptions(minZoom = ZOOM_MIN, maxZoom = ZOOM_MAX)) %>%
   setView(lng = SURREY_LNG, lat = SURREY_LAT, zoom = (ZOOM_MIN+ZOOM_MAX)/2) %>%
-  addMarkers(~longitude, ~latitude, layerId = ~as.character(station_name), popup = ~as.character(station_name), icon = camIcon) %>%
+  addMarkers(~longitude, ~latitude, layerId = ~as.character(station_name), popup = ~as.character(station_name), icon = camIcon,group="Camera Map (default)") %>%
+  addHeatmap(lng=heatmap_data$longitude,lat=heatmap_data$latitude,intensity=heatmap_data$car_count_cat,
+             max=15,radius=10,blur=35, gradient= "OrRd",group="Heat Map")%>%
   addProviderTiles(providers$CartoDB.Positron)%>%
   addLayersControl(
     position = "bottomright",
@@ -42,6 +50,7 @@ basemap <- leaflet(data = cams, options = leafletOptions(minZoom = ZOOM_MIN, max
                       "Health and Medicine",
                       "Business and Finance",
                       "Services"),
+    baseGroups = c("Camera Map (default)","Heat Map"),
     options=layersControlOptions(collapsed = TRUE))%>%
   hideGroup(c("Stores",
               "Food and Restaurants",
@@ -56,6 +65,8 @@ basemap <- leaflet(data = cams, options = leafletOptions(minZoom = ZOOM_MIN, max
   addMarkers(data=finances,popup = ~as.character(BusinessName),icon= bizIcon, group="Business and Finance",clusterOptions = markerClusterOptions(maxClusterRadius = 30,showCoverageOnHover = FALSE))%>%
   addMarkers(data=services,popup = ~as.character(BusinessName),icon= serviceIcon,group= "Services",
              clusterOptions = markerClusterOptions(showCoverageOnHover = FALSE))
+
+  
 
 plotVehicleCountWithTime <- function(df, start, end, vehicleType) {
   if (nrow(df) == 0) {

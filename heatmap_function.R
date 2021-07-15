@@ -60,10 +60,9 @@ render_heatmap <- function(data) {
 
 ##############Render Data##############
 
-render_data <- function(data) {
-  dat1<-read_csv(data)
+render_heatmap_df <- function(data) {
   dat2<-read_csv("data/Surrey_desc.csv")
-  to_merge<-merge(dat1,dat2,by.x="station",by.y="station_name")
+  to_merge<-merge(data,dat2,by.x="station",by.y="station_name")
   to_merge2<-to_merge
   
   surrey_avg_df<-to_merge%>% #take the mean of counts
@@ -102,4 +101,3 @@ render_data <- function(data) {
   
 }
 
-rendered_data<-render_data('data/Surrey_data.csv')
