@@ -23,6 +23,7 @@ camIcon <- makeIcon(
 # Other Constants
 surreyLat <- 49.15
 surreyLng <- -122.8
+vehicleTypes <- c("car_count", "truck_count", "bus_count", "bicycle_count", "motorcycle_count", "person_count")
 
 ########## UI ##########
 
@@ -53,7 +54,7 @@ basemap <- leaflet(data = cams, options = leafletOptions(minZoom = 10, maxZoom =
   addMarkers(data=services,popup = ~as.character(BusinessName),icon= serviceIcon,group= "Services",
              clusterOptions = markerClusterOptions(showCoverageOnHover = FALSE))
 
-plotCarCountWithTime <- function(df, start, end) {
+plotVehicleCountWithTime <- function(df, start, end, vehicleType) {
   if (nrow(df) == 0) {
     return(ggplot() + # Draw ggplot2 plot with text only
              annotate("text",
@@ -66,12 +67,12 @@ plotCarCountWithTime <- function(df, start, end) {
   }
   df$time <- as.POSIXct(df$time)
   df <- df %>% filter(time %within% interval(start, end))
-  myplot <- ggplot(data=df, aes(y=car_count, x=time)) +
+  myplot <- ggplot(data=df, aes_string(y=vehicleType, x="time")) +
     geom_line() +
-    geom_smooth() +
+    geom_smooth(method = 'loess', formula = 'y~x') +
     scale_x_datetime(date_breaks = "24 hours", date_labels = "%Y-%m-%d %H:%M") +
     xlab("Time(hour)") +
-    ylab("Car Count") +
+    ylab(vehicleType) +
     theme(axis.text.x = element_text(angle = 60, hjust = 1))
   return(myplot)
 }
@@ -90,7 +91,22 @@ ui <- navbarPage("Unbiased Mobility", id="nav",
                                                   label = "Camera ID", 
                                                   choices = cams$station_name, # TODO: load 364 cameras from csv 
                                                   multiple = FALSE),
-                                      plotOutput("linePlotCarCounts", height = "200")))))
+                                      selectInput(inputId = "vehicleType", 
+                                                  label = "Vehicle Type", 
+                                                  choices = vehicleTypes,
+                                                  multiple = FALSE),
+                                      plotOutput("linePlotVehicleCounts", height = "200")))
+                    ),
+              sidebarPanel(
+                 sliderInput(
+                   "timeRange", label = "Choose Time Range:",
+                   min = as.POSIXct("2020-12-01 00:00:00"),
+                   max = as.POSIXct("2020-12-31 23:59:59"),
+                   value = c(as.POSIXct("2020-12-01 00:00:00"), as.POSIXct("2020-12-07 23:59:59")),
+                   timeFormat = "%Y-%m-%d %H:%M", ticks = F, animate = T
+                 )
+           )
+      )
 
 ########## Server ##########
 
@@ -112,10 +128,11 @@ server <- function(input, output, session) {
       updateSelectInput(session, 'camid', selected = marker$id)
     })
 
-      output$linePlotCarCounts <- renderPlot({
-        plotCarCountWithTime(current_cam, 
-                             as.POSIXct("2020-12-01 00:00:00"), # input$startHour, 
-                             as.POSIXct("2020-12-07 23:59:59")) # input$endHour)
+      output$linePlotVehicleCounts <- renderPlot({
+        plotVehicleCountWithTime(current_cam, 
+                             input$timeRange[1],
+                             input$timeRange[2],
+                             input$vehicleType)
         
       })
 
