@@ -21,6 +21,8 @@ camIcon <- makeIcon(
 )
 
 # Other Constants
+
+VEHICLE_TYPES <- c("car_count", "truck_count", "bus_count", "bicycle_count", "motorcycle_count", "person_count")
 SURREY_LAT <- 49.15
 SURREY_LNG <- -122.8
 ZOOM_MIN = 10
@@ -55,7 +57,7 @@ basemap <- leaflet(data = cams, options = leafletOptions(minZoom = ZOOM_MIN, max
   addMarkers(data=services,popup = ~as.character(BusinessName),icon= serviceIcon,group= "Services",
              clusterOptions = markerClusterOptions(showCoverageOnHover = FALSE))
 
-plotCarCountWithTime <- function(df, start, end) {
+plotVehicleCountWithTime <- function(df, start, end, vehicleType) {
   if (nrow(df) == 0) {
     return(ggplot() + # Draw ggplot2 plot with text only
              annotate("text",
@@ -68,12 +70,12 @@ plotCarCountWithTime <- function(df, start, end) {
   }
   df$time <- as.POSIXct(df$time)
   df <- df %>% filter(time %within% interval(start, end))
-  myplot <- ggplot(data=df, aes(y=car_count, x=time)) +
+  myplot <- ggplot(data=df, aes_string(y=vehicleType, x="time")) +
     geom_line() +
-    geom_smooth() +
+    geom_smooth(method = 'loess', formula = 'y~x') +
     scale_x_datetime(date_breaks = "24 hours", date_labels = "%Y-%m-%d %H:%M") +
     xlab("Time(hour)") +
-    ylab("Car Count") +
+    ylab(vehicleType) +
     theme(axis.text.x = element_text(angle = 60, hjust = 1))
   return(myplot)
 }
@@ -92,7 +94,22 @@ ui <- navbarPage("Unbiased Mobility", id="nav",
                                                   label = "Camera ID", 
                                                   choices = cams$station_name,
                                                   multiple = FALSE),
-                                      plotOutput("linePlotCarCounts", height = "200")))))
+                                      selectInput(inputId = "vehicleType", 
+                                                  label = "Vehicle Type", 
+                                                  choices = VEHICLE_TYPES,
+                                                  multiple = FALSE),
+                                      plotOutput("linePlotVehicleCounts", height = "200")))
+                    ),
+              absolutePanel(
+                 sliderInput(
+                   "timeRange", label = "Choose Time Range:",
+                   min = as.POSIXct("2020-12-01 00:00:00"),
+                   max = as.POSIXct("2020-12-31 23:59:59"),
+                   value = c(as.POSIXct("2020-12-01 00:00:00"), as.POSIXct("2020-12-07 23:59:59")),
+                   timeFormat = "%Y-%m-%d %H:%M", ticks = F, animate = T
+                 ), draggable = TRUE, top = "80%", left = "40%"
+           )
+      )
 
 ########## Server ##########
 
@@ -121,15 +138,11 @@ server <- function(input, output, session) {
     })
   })
   
-  # Update count data based on selected camera
-  observe({
-    data <- cams_data %>% filter(station == current_cam$id)
-    current_cam$data <- data
-  })
-  
   # Smooth pan map view based on camera selected
   observeEvent(current_cam$id, {
     data <- cams %>% filter(station_name == current_cam$id)
+    # Update current_cam data on id change
+    current_cam$data <- cams_data %>% filter(station == current_cam$id)
     map_view$lng = data$longitude
     map_view$lat = data$latitude
     map_view$zoom = max(input$basemap_zoom, (ZOOM_MAX + ZOOM_MIN)/2)
@@ -138,14 +151,15 @@ server <- function(input, output, session) {
             lng = map_view$lng,
             lat = map_view$lat,
             zoom = map_view$zoom)
+    output$linePlotVehicleCounts <- renderPlot({
+      plotVehicleCountWithTime(current_cam$data, 
+                               input$timeRange[1],
+                               input$timeRange[2],
+                               input$vehicleType)
+      
+    })
   })
-  
-  output$linePlotCarCounts <- renderPlot({
-    plotCarCountWithTime(current_cam$data, 
-                         as.POSIXct("2020-12-01 00:00:00"), # input$startHour, 
-                         as.POSIXct("2020-12-07 23:59:59")) # input$endHour)
-    
-  })
+
 }
 
 shinyApp(ui = ui, server = server)
