@@ -100,14 +100,14 @@ ui <- navbarPage("Unbiased Mobility", id="nav",
                                                   multiple = FALSE),
                                       plotOutput("linePlotVehicleCounts", height = "200")))
                     ),
-              sidebarPanel(
+              absolutePanel(
                  sliderInput(
                    "timeRange", label = "Choose Time Range:",
                    min = as.POSIXct("2020-12-01 00:00:00"),
                    max = as.POSIXct("2020-12-31 23:59:59"),
                    value = c(as.POSIXct("2020-12-01 00:00:00"), as.POSIXct("2020-12-07 23:59:59")),
                    timeFormat = "%Y-%m-%d %H:%M", ticks = F, animate = T
-                 )
+                 ), draggable = TRUE, top = "80%", left = "40%"
            )
       )
 
@@ -136,25 +136,13 @@ server <- function(input, output, session) {
     isolate({ 
       updateSelectInput(session, 'camid', selected = marker$id)
     })
-
-      output$linePlotVehicleCounts <- renderPlot({
-        plotVehicleCountWithTime(current_cam$data, 
-                             input$timeRange[1],
-                             input$timeRange[2],
-                             input$vehicleType)
-        
-      })
-  })
-  
-  # Update count data based on selected camera
-  observe({
-    data <- cams_data %>% filter(station == current_cam$id)
-    current_cam$data <- data
   })
   
   # Smooth pan map view based on camera selected
   observeEvent(current_cam$id, {
     data <- cams %>% filter(station_name == current_cam$id)
+    # Update current_cam data on id change
+    current_cam$data <- cams_data %>% filter(station == current_cam$id)
     map_view$lng = data$longitude
     map_view$lat = data$latitude
     map_view$zoom = max(input$basemap_zoom, (ZOOM_MAX + ZOOM_MIN)/2)
@@ -163,6 +151,13 @@ server <- function(input, output, session) {
             lng = map_view$lng,
             lat = map_view$lat,
             zoom = map_view$zoom)
+    output$linePlotVehicleCounts <- renderPlot({
+      plotVehicleCountWithTime(current_cam$data, 
+                               input$timeRange[1],
+                               input$timeRange[2],
+                               input$vehicleType)
+      
+    })
   })
 
 }
