@@ -138,13 +138,13 @@ server <- function(input, output, session) {
   # dynamically show/hide userInputs in the sidebarMenu
   observeEvent(input$sidemenu, {
     if (input$sidemenu == "userInputs") {
-      show("timeRange")
-      show("camid")
-      show("vehicleType")
+      shinyjs::show("timeRange")
+      shinyjs::show("camid")
+      shinyjs::show("vehicleType")
     } else {
-      hide("timeRange")
-      hide("camid")
-      hide("vehicleType")
+      shinyjs::hide("timeRange")
+      shinyjs::hide("camid")
+      shinyjs::hide("vehicleType")
     }
   })
   
