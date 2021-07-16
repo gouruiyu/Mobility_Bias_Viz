@@ -1,5 +1,6 @@
 library(shiny)
 library(shinydashboard)
+library(shinyjs)
 library(leaflet)
 library(sf)
 library(ggplot2)
@@ -80,47 +81,72 @@ plotVehicleCountWithTime <- function(df, start, end, vehicleType) {
   return(myplot)
 }
 
-ui <- navbarPage("Unbiased Mobility", id="nav",
-           
-           tabPanel("Map",
-                    div(class = "outer", 
-                        tags$head(includeCSS("styles.css")),
-                        leafletOutput("basemap", width = "100%", height = "100%"),
-                        absolutePanel(id = "controls", class = "panel panel-default", fixed = TRUE,
-                                      draggable = TRUE, top = 60, left = "auto", right = 20, bottom = "auto",
-                                      width = 330, height = "auto",
-                                      h2("Traffic explorer"),
-                                      selectInput(inputId = "camid", 
-                                                  label = "Camera ID", 
-                                                  choices = cams$station_name,
-                                                  multiple = FALSE),
-                                      selectInput(inputId = "vehicleType", 
-                                                  label = "Vehicle Type", 
-                                                  choices = VEHICLE_TYPES,
-                                                  multiple = FALSE),
-                                      plotOutput("linePlotVehicleCounts", height = "200")))
-                    ),
-              absolutePanel(
-                 sliderInput(
-                   "timeRange", label = "Choose Time Range:",
-                   min = as.POSIXct("2020-12-01 00:00:00"),
-                   max = as.POSIXct("2020-12-31 23:59:59"),
-                   value = c(as.POSIXct("2020-12-01 00:00:00"), as.POSIXct("2020-12-07 23:59:59")),
-                   timeFormat = "%Y-%m-%d %H:%M", ticks = F, animate = T
-                 ), draggable = TRUE, top = "80%", left = "40%"
-           )
+ui <- dashboardPage(
+  dashboardHeader(title = "Unbiased Mobility"),
+  dashboardSidebar(
+    useShinyjs(),
+    sidebarMenu( id = "sidemenu",
+      menuItem("Cam Map", tabName = "basemap", icon = icon("camera")),
+      menuItem("User Inputs", tabName = "userInputs", icon = icon("person")),
+      hidden(
+        sliderInput(
+          "timeRange", label = "Choose Time Range:",
+          min = as.POSIXct("2020-12-01 00:00:00"),
+          max = as.POSIXct("2020-12-31 23:59:59"),
+          value = c(as.POSIXct("2020-12-01 00:00:00"), as.POSIXct("2020-12-07 23:59:59")),
+          timeFormat = "%Y-%m-%d %H:%M", ticks = F, animate = T
+        ),
+        selectInput(inputId = "camid",
+                    label = "Camera ID",
+                    choices = cams$station_name,
+                    multiple = FALSE),
+        selectInput(inputId = "vehicleType",
+                    label = "Vehicle Type",
+                    choices = VEHICLE_TYPES,
+                    multiple = FALSE)
       )
+    )
+  ),
+  dashboardBody(
+    tabItems(
+      tabItem(tabName = "basemap",
+              div(class = "outer", 
+                  tags$head(includeCSS("styles.css")),
+                  leafletOutput("basemap", width = "100%", height = "100%"),
+                  absolutePanel(id = "controls", class = "panel panel-default", fixed = TRUE,
+                                draggable = TRUE, top = 60, left = "auto", right = 20, bottom = "auto",
+                                width = 330, height = "auto",
+                                h2("Traffic explorer"),
+                                plotOutput("linePlotVehicleCounts", height = "200"))
+                  )
+      )
+    )
+  )
+  )
 
 ########## Server ##########
 
 server <- function(input, output, session) {
   output$basemap <- renderLeaflet(basemap)
-  
+
   # current selected camera
   current_cam <- reactiveValues()
   
   # current map center
   map_view <- reactiveValues()
+  
+  # dynamically show/hide userInputs in the sidebarMenu
+  observeEvent(input$sidemenu, {
+    if (input$sidemenu == "userInputs") {
+      shinyjs::show("timeRange")
+      shinyjs::show("camid")
+      shinyjs::show("vehicleType")
+    } else {
+      shinyjs::hide("timeRange")
+      shinyjs::hide("camid")
+      shinyjs::hide("vehicleType")
+    }
+  })
   
   # Update current camera according to selected input
   observeEvent(input$camid, {
