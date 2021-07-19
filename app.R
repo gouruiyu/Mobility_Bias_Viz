@@ -13,13 +13,14 @@ source("biz_data_clean.R")
 cams <- read.csv("data/surrey_desc.csv")
 cams_data <- read.csv("data/surrey_data.csv")
 
-
 # Camera Icon asset
 camIcon <- makeIcon(
   iconUrl = "https://img.icons8.com/plasticine/100/000000/camera--v1.png",
   iconWidth = 20, iconHeight = 20,
   iconAnchorX = 10, iconAnchorY = 10
 )
+# highlighted icon style
+cam_icon_highlight <- makeAwesomeIcon(icon = 'camera', markerColor = 'red')
 
 # Other Constants
 
@@ -87,7 +88,7 @@ ui <- dashboardPage(
     useShinyjs(),
     sidebarMenu( id = "sidemenu",
       menuItem("Cam Map", tabName = "basemap", icon = icon("camera")),
-      menuItem("User Inputs", tabName = "userInputs", icon = icon("person")),
+      menuItem("User Inputs", tabName = "userInputs", icon = icon("user")),
       hidden(
         sliderInput(
           "timeRange", label = "Choose Time Range:",
@@ -100,10 +101,8 @@ ui <- dashboardPage(
                     label = "Camera ID",
                     choices = cams$station_name,
                     multiple = FALSE),
-        selectInput(inputId = "vehicleType",
-                    label = "Vehicle Type",
-                    choices = VEHICLE_TYPES,
-                    multiple = FALSE)
+        radioButtons("vehicleType", "Vehicle Type:",
+                     VEHICLE_TYPES)
         # checkboxInput("realtimeImg",label = "Display current traffic image", value = TRUE)
       )
     )
@@ -130,14 +129,20 @@ ui <- dashboardPage(
 ########## Server ##########
 
 server <- function(input, output, session) {
-  output$basemap <- renderLeaflet(basemap)
+  output$basemap <- renderLeaflet({
+    basemap
+    })
 
   # current selected camera
   current_cam <- reactiveValues()
+  selected_cams <- reactiveValues()
   
   # current map center
   map_view <- reactiveValues()
   
+  # to keep track of previously selected marker
+  prev_selected <- reactiveVal()
+
   # dynamically show/hide userInputs in the sidebarMenu
   observeEvent(input$sidemenu, {
     if (input$sidemenu == "userInputs") {
@@ -162,6 +167,31 @@ server <- function(input, output, session) {
     marker <- input$basemap_marker_click
     if (is.null(marker$id)) return()
     current_cam$id <- marker$id
+    # print(marker$lng)
+    # print(marker$lat)
+    
+    # highlight current selected cam marker
+    proxy <- leafletProxy('basemap')
+    proxy %>%
+      addAwesomeMarkers(popup=marker$id,
+                        layerId = marker$id,
+                        lng=marker$lng, 
+                        lat=marker$lat,
+                        icon = cam_icon_highlight)
+    
+    # Reset previously selected marker
+    if(!is.null(prev_selected()))
+    {
+      proxy %>%
+        addMarkers(popup=as.character(prev_selected()$id), 
+                   layerId = as.character(prev_selected()$id),
+                   lng=as.numeric(prev_selected()$lng), 
+                   lat=as.numeric(prev_selected()$lat),
+                   icon = camIcon)
+    }
+    # set new value to reactiveVal 
+    prev_selected(marker)
+
     isolate({ 
       updateSelectInput(session, 'camid', selected = marker$id)
     })
@@ -180,6 +210,7 @@ server <- function(input, output, session) {
             lng = map_view$lng,
             lat = map_view$lat,
             zoom = map_view$zoom)
+    
     output$linePlotVehicleCounts <- renderPlot({
       plotVehicleCountWithTime(current_cam$data, 
                                input$timeRange[1],
