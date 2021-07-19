@@ -4,6 +4,9 @@
 # Data
 data/*
 
+# Configuration
+config/app.json
+
 # History files
 .Rhistory
 .Rapp.history
