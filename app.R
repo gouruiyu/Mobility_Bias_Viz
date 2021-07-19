@@ -11,10 +11,9 @@ source("biz_data_clean.R")
 source("heatmap_function.R")
 
 # Load data
-cams <- read.csv("data/surrey_desc.csv")
 cams_data <- read.csv("data/surrey_data.csv")
-heatmap_data<-render_heatmap_df(cams_data)
-
+cams <- read.csv("data/surrey_desc.csv")
+heatmap_data<-render.daily(cams_data,cams)
 
 
 # Camera Icon asset
@@ -39,9 +38,6 @@ ZOOM_MAX = 18
 
 basemap <- leaflet(data = cams, options = leafletOptions(minZoom = ZOOM_MIN, maxZoom = ZOOM_MAX)) %>%
   setView(lng = SURREY_LNG, lat = SURREY_LAT, zoom = (ZOOM_MIN+ZOOM_MAX)/2) %>%
-  addMarkers(~longitude, ~latitude, layerId = ~as.character(station_name), popup = ~as.character(station_name), icon = camIcon,group="Camera Map (default)") %>%
-  addHeatmap(lng=heatmap_data$longitude,lat=heatmap_data$latitude,intensity=heatmap_data$car_count_cat,
-             max=15,radius=10,blur=35, gradient= "OrRd",group="Heat Map")%>%
   addProviderTiles(providers$CartoDB.Positron)%>%
   addLayersControl(
     position = "bottomright",
@@ -51,7 +47,7 @@ basemap <- leaflet(data = cams, options = leafletOptions(minZoom = ZOOM_MIN, max
                       "Health and Medicine",
                       "Business and Finance",
                       "Services"),
-    baseGroups = c("Camera Map (default)","Heat Map"),
+    baseGroups = c('Cameras','Heatmap'),
     options=layersControlOptions(collapsed = TRUE))%>%
   hideGroup(c("Stores",
               "Food and Restaurants",
@@ -59,6 +55,7 @@ basemap <- leaflet(data = cams, options = leafletOptions(minZoom = ZOOM_MIN, max
               "Health and Medicine",
               "Business and Finance",
               "Services"))%>%
+  addMarkers(~longitude, ~latitude, layerId = ~as.character(station_name), popup = ~as.character(station_name), icon = camIcon,group="Cameras") %>%
   addMarkers(data=stores, popup = ~as.character(BusinessName),icon= storeIcon,group="Stores",clusterOptions = markerClusterOptions(maxClusterRadius = 30,showCoverageOnHover = FALSE))%>%
   addMarkers(data=food.and.restaurant,popup = ~as.character(BusinessName), icon=restaurantIcon, group= "Food and Restaurants",clusterOptions = markerClusterOptions(maxClusterRadius = 30,showCoverageOnHover = FALSE))%>%
   addMarkers(data=alcohol,popup = ~as.character(BusinessName), icon= liquorIcon, group= "Liquor Stores",clusterOptions = markerClusterOptions(maxClusterRadius = 30,showCoverageOnHover = FALSE))%>%
@@ -104,8 +101,8 @@ ui <- dashboardPage(
           "timeRange", label = "Choose Time Range:",
           min = as.POSIXct("2020-12-01 00:00:00"),
           max = as.POSIXct("2020-12-31 23:59:59"),
-          value = c(as.POSIXct("2020-12-01 00:00:00"), as.POSIXct("2020-12-07 23:59:59")),
-          timeFormat = "%Y-%m-%d %H:%M", ticks = F, animate = T
+          value = c(as.POSIXct("2020-12-01 00:00:00"), as.POSIXct("2020-12-04 23:59:59")),
+          timeFormat = "%Y-%m-%d %H:%M", ticks = T, step=2000, animate = T
         ),
         selectInput(inputId = "camid",
                     label = "Camera ID",
@@ -191,6 +188,7 @@ server <- function(input, output, session) {
             lng = map_view$lng,
             lat = map_view$lat,
             zoom = map_view$zoom)
+    
     output$linePlotVehicleCounts <- renderPlot({
       plotVehicleCountWithTime(current_cam$data, 
                                input$timeRange[1],
@@ -205,6 +203,34 @@ server <- function(input, output, session) {
     # Return a list containing the filename and alt text
     list(src = filename, alt = "Camera Image", width = 300)
   }, deleteFile = FALSE)
+  
+  #heatmap values based on user's input 
+  filtered_hm <- reactive({
+    heatmap_data[heatmap_data$time >= input$timeRange[1] & heatmap_data$time <= input$timeRange[2], ]
+  })
+  
+  #heatmap
+  observeEvent(
+    input$timeRange,
+    {                    # do some work in a block and return a leafletProxy
+      hmdff <- filtered_hm()  # get the filtered data frame
+      lfp <-             # and use this data to create the map
+        leafletProxy("basemap", data = hmdff) %>%
+        clearHeatmap() %>%
+        addHeatmap(
+          lng = ~hmdff$longitude,
+          lat = ~hmdff$latitude,
+          max = 14,
+          radius = 5,
+          blur = 3,
+          intensity = ~hmdff$car_count,
+          group="Heatmap",
+          gradient = "OrRd"
+        )
+      lfp  # return the leaflet proxy
+    }
+  )
+  
 }
 
 shinyApp(ui = ui, server = server)
