@@ -134,7 +134,7 @@ server <- function(input, output, session) {
     })
 
   # current selected camera
-  current_cam <- reactiveValues()
+  current_cam <- reactiveValues(id = NULL, data = NULL, lat = NULL, lng = NULL, selected = TRUE)
   selected_cams <- reactiveValues()
   
   # current map center
@@ -142,6 +142,8 @@ server <- function(input, output, session) {
   
   # to keep track of previously selected marker
   prev_selected <- reactiveVal()
+  # highlight current selected cam marker
+  proxy <- leafletProxy('basemap')
 
   # dynamically show/hide userInputs in the sidebarMenu
   observeEvent(input$sidemenu, {
@@ -167,40 +169,41 @@ server <- function(input, output, session) {
     marker <- input$basemap_marker_click
     if (is.null(marker$id)) return()
     current_cam$id <- marker$id
-    # print(marker$lng)
-    # print(marker$lat)
-    
-    # highlight current selected cam marker
-    proxy <- leafletProxy('basemap')
-    proxy %>%
-      addAwesomeMarkers(popup=marker$id,
-                        layerId = marker$id,
-                        lng=marker$lng, 
-                        lat=marker$lat,
-                        icon = cam_icon_highlight)
-    
-    # Reset previously selected marker
-    if(!is.null(prev_selected()))
-    {
-      proxy %>%
-        addMarkers(popup=as.character(prev_selected()$id), 
-                   layerId = as.character(prev_selected()$id),
-                   lng=as.numeric(prev_selected()$lng), 
-                   lat=as.numeric(prev_selected()$lat),
-                   icon = camIcon)
-    }
-    # set new value to reactiveVal 
-    prev_selected(marker)
-
     isolate({ 
       updateSelectInput(session, 'camid', selected = marker$id)
     })
+    
+    # toggle selection state
+    current_cam$selected <- !current_cam$selected
+
+    if (!is.null(prev_selected())) {
+      if (prev_selected()$selected) {
+        # de-selecting previous camera
+        proxy %>%
+          addMarkers(popup=as.character(prev_selected()$id),
+                     layerId = as.character(prev_selected()$id),
+                     lng=prev_selected()$lng,
+                     lat=prev_selected()$lat,
+                     icon = camIcon)
+      } else {
+        # re-selecting on the same camera
+        proxy %>%
+          addAwesomeMarkers(popup=as.character(current_cam$id),
+                            layerId = as.character(current_cam$id),
+                            lng=current_cam$lng, 
+                            lat=current_cam$lat,
+                            icon = cam_icon_highlight)
+      }
+    }
+    prev_selected(current_cam)
   })
   
   # Smooth pan map view based on camera selected
   observeEvent(current_cam$id, {
     data <- cams %>% filter(station_name == current_cam$id)
     # Update current_cam data on id change
+    current_cam$lng <- cams[which(cams$station_name == current_cam$id),]$longitude
+    current_cam$lat <- cams[which(cams$station_name == current_cam$id),]$latitude
     current_cam$data <- cams_data %>% filter(station == current_cam$id)
     map_view$lng = data$longitude
     map_view$lat = data$latitude
@@ -210,6 +213,13 @@ server <- function(input, output, session) {
             lng = map_view$lng,
             lat = map_view$lat,
             zoom = map_view$zoom)
+
+    proxy %>%
+      addAwesomeMarkers(popup=as.character(current_cam$id),
+                        layerId = as.character(current_cam$id),
+                        lng=current_cam$lng, 
+                        lat=current_cam$lat,
+                        icon = cam_icon_highlight)
     
     output$linePlotVehicleCounts <- renderPlot({
       plotVehicleCountWithTime(current_cam$data, 
