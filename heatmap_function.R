@@ -72,3 +72,19 @@ render.daily<- function(surrey_data,surrey_desc){
 
 
 }
+
+###############Function for  daily changing traffic#########
+
+render.daily <- function(dat1,dat2) {
+  dat1<-read_csv("data/surrey_data.csv")
+  dat2<-read_csv("data/surrey_desc.csv")
+  surrey_merged<-merge(dat1,dat2,by.x="station",by.y="station_name")
+  surrey_merged<-surrey_merged%>%
+    mutate(time=with_tz(surrey_merged$time,tzone="America/Los_Angeles"))
+  
+  breaks_qt <- classIntervals(surrey_merged$car_count, n = 4, style = "fixed", fixedBreaks=c(-1, 0, 3, 5, c(max(surrey_merged$car_count))), intervalClosure = c("right"))
+  
+  merged.df <- mutate(surrey_merged, car_count_cat = cut(car_count, breaks=breaks_qt$brks, labels = c("No traffic", "Low traffic", "Medium traffic", "Busy traffic")))
+  return(merged.df)
+  
+}
