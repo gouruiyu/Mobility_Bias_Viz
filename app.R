@@ -104,6 +104,7 @@ ui <- dashboardPage(
                     label = "Vehicle Type",
                     choices = VEHICLE_TYPES,
                     multiple = FALSE)
+        # checkboxInput("realtimeImg",label = "Display current traffic image", value = TRUE)
       )
     )
   ),
@@ -116,13 +117,15 @@ ui <- dashboardPage(
                   absolutePanel(id = "controls", class = "panel panel-default", fixed = TRUE,
                                 draggable = TRUE, top = 60, left = "auto", right = 20, bottom = "auto",
                                 width = 330, height = "auto",
-                                h2("Traffic explorer"),
-                                plotOutput("linePlotVehicleCounts", height = "200"))
-                  )
-      )
+                                h3("Traffic explorer"),
+                                plotOutput("linePlotVehicleCounts", height = "200"))),
+              absolutePanel(id = "camera_img",
+                            draggable = TRUE, top = "auto", left = "auto" , right = "auto", bottom = 20,
+                            width = 300, height = "auto",
+                            imageOutput("testImg", height="auto"))
     )
   )
-  )
+))
 
 ########## Server ##########
 
@@ -182,10 +185,15 @@ server <- function(input, output, session) {
                                input$timeRange[1],
                                input$timeRange[2],
                                input$vehicleType)
-      
     })
   })
-
+  
+  # Camera Image
+  output$testImg <- renderImage({
+    filename <- normalizePath(file.path('data/example_cam.jpg'))
+    # Return a list containing the filename and alt text
+    list(src = filename, alt = "Camera Image", width = 300)
+  }, deleteFile = FALSE)
 }
 
 shinyApp(ui = ui, server = server)
