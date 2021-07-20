@@ -192,9 +192,9 @@ server <- function(input, output, session) {
     # toggle selection state
     current_cam$selected <- !current_cam$selected
     if (current_cam$selected) {
-      selected_cams$ids <- selected_cams$ids[selected_cams$ids != current_cam$id]
+      selected_cams$ids <- unique(c(selected_cams$ids, current_cam$id))
     } else {
-      selected_cams$ids <- c(selected_cams$ids, current_cam$id)
+      selected_cams$ids <- selected_cams$ids[selected_cams$ids != current_cam$id]
     }
     
 
@@ -236,7 +236,7 @@ server <- function(input, output, session) {
             lat = map_view$lat,
             zoom = map_view$zoom)
     
-    selected_cams$ids <- c(selected_cams$ids, current_cam$id)
+    selected_cams$ids <- unique(c(selected_cams$ids, current_cam$id))
     print(selected_cams$ids)
 
     proxy %>%
@@ -265,7 +265,14 @@ server <- function(input, output, session) {
   #   list(src = test_URI, alt = "Camera Image", width = 300)
   # }, deleteFile = FALSE)
   output$image <- renderUI({
-    img_URI = fetchImage(station = current_cam$id)
+    img_URI = NULL
+    print("fetch image...")
+    print(current_cam$selected)
+    print(length(selected_cams$ids))
+    print("end of fetch")
+    if (current_cam$selected & length(selected_cams$ids) == 1) {
+      img_URI = fetchImage(station = current_cam$id)
+    }
     if (!is.null(img_URI)) {
       tags$div(tags$img(src = img_URI, width = 300))
     }
