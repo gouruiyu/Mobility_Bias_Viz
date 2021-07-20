@@ -16,6 +16,9 @@ data/* folder is gitignored for confidential concerns. The code expects the foll
 - surrey_data.csv 
 - all_businesses.csv
 
+config/* folder has some content ignored. The code expects the following configuration files:
+- api.R
+
 (For dev only, subject to change)
 
 
