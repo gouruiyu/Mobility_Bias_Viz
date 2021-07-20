@@ -222,7 +222,8 @@ server <- function(input, output, session) {
                      layerId = as.character(prev_selected()$id),
                      lng=prev_selected()$lng,
                      lat=prev_selected()$lat,
-                     icon = camIcon)
+                     icon = camIcon,
+                     group="Cameras")
       } else {
         # re-selecting on the same camera
         proxy %>%
@@ -230,7 +231,8 @@ server <- function(input, output, session) {
                             layerId = as.character(current_cam$id),
                             lng=current_cam$lng, 
                             lat=current_cam$lat,
-                            icon = cam_icon_highlight)
+                            icon = cam_icon_highlight,
+                            group="Cameras")
       }
     }
     prev_selected(current_cam)
