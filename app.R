@@ -6,6 +6,8 @@ library(sf)
 library(ggplot2)
 library(dplyr)
 library(lubridate)
+library(DT)
+library (plyr)
 
 source("biz_data_clean.R")
 
@@ -71,8 +73,9 @@ plotVehicleCountWithTime <- function(df, start, end, vehicleType) {
              theme_void())
   }
   df$time <- as.POSIXct(df$time)
+  df$station <- as.factor(df$station)
   df <- df %>% filter(time %within% interval(start, end))
-  myplot <- ggplot(data=df, aes_string(y=vehicleType, x="time")) +
+  myplot <- ggplot(data=df, aes_string(y=vehicleType, x="time", color="station")) +
     geom_line() +
     geom_smooth(method = 'loess', formula = 'y~x') +
     scale_x_datetime(date_breaks = "24 hours", date_labels = "%Y-%m-%d %H:%M") +
@@ -115,7 +118,7 @@ ui <- dashboardPage(
                   leafletOutput("basemap", width = "100%", height = "100%"),
                   absolutePanel(id = "controls", class = "panel panel-default", fixed = TRUE,
                                 draggable = TRUE, top = 60, left = "auto", right = 20, bottom = "auto",
-                                width = 330, height = "auto",
+                                width = 350, height = "auto",
                                 h3("Traffic explorer"),
                                 plotOutput("linePlotVehicleCounts", height = "200"))),
               absolutePanel(id = "camera_img",
@@ -135,7 +138,7 @@ server <- function(input, output, session) {
 
   # current selected camera
   current_cam <- reactiveValues(id = NULL, data = NULL, lat = NULL, lng = NULL, selected = TRUE)
-  selected_cams <- reactiveValues()
+  selected_cams <- reactiveValues(ids = c(), data = c())
   
   # current map center
   map_view <- reactiveValues()
@@ -175,6 +178,12 @@ server <- function(input, output, session) {
     
     # toggle selection state
     current_cam$selected <- !current_cam$selected
+    if (current_cam$selected) {
+      selected_cams$ids <- selected_cams$ids[selected_cams$ids != current_cam$id]
+    } else {
+      selected_cams$ids <- c(selected_cams$ids, current_cam$id)
+    }
+    
 
     if (!is.null(prev_selected())) {
       if (prev_selected()$selected) {
@@ -213,6 +222,9 @@ server <- function(input, output, session) {
             lng = map_view$lng,
             lat = map_view$lat,
             zoom = map_view$zoom)
+    
+    selected_cams$ids <- c(selected_cams$ids, current_cam$id)
+    print(selected_cams$ids)
 
     proxy %>%
       addAwesomeMarkers(popup=as.character(current_cam$id),
@@ -221,8 +233,12 @@ server <- function(input, output, session) {
                         lat=current_cam$lat,
                         icon = cam_icon_highlight)
     
+  })
+
+  observeEvent(selected_cams$ids, {
+    selected_cams$data <- cams_data %>% filter(station %in% selected_cams$ids)
     output$linePlotVehicleCounts <- renderPlot({
-      plotVehicleCountWithTime(current_cam$data, 
+      plotVehicleCountWithTime(selected_cams$data, 
                                input$timeRange[1],
                                input$timeRange[2],
                                input$vehicleType)
