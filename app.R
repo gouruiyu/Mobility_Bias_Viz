@@ -266,7 +266,9 @@ server <- function(input, output, session) {
   # }, deleteFile = FALSE)
   output$image <- renderUI({
     img_URI = fetchImage(station = current_cam$id)
-    tags$div(tags$img(src = img_URI, width = 300))
+    if (!is.null(img_URI)) {
+      tags$div(tags$img(src = img_URI, width = 300))
+    }
   })
 }
 
