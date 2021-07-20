@@ -6,6 +6,7 @@ library(sf)
 library(ggplot2)
 library(dplyr)
 library(lubridate)
+library(hms)
 
 source("biz_data_clean.R")
 
@@ -13,13 +14,14 @@ source("biz_data_clean.R")
 cams <- read.csv("data/surrey_desc.csv")
 cams_data <- read.csv("data/surrey_data.csv")
 
-
 # Camera Icon asset
 camIcon <- makeIcon(
   iconUrl = "https://img.icons8.com/plasticine/100/000000/camera--v1.png",
   iconWidth = 20, iconHeight = 20,
   iconAnchorX = 10, iconAnchorY = 10
 )
+# highlighted icon style
+cam_icon_highlight <- makeAwesomeIcon(icon = 'camera', markerColor = 'red')
 
 # Other Constants
 
@@ -58,7 +60,7 @@ basemap <- leaflet(data = cams, options = leafletOptions(minZoom = ZOOM_MIN, max
   addMarkers(data=services,popup = ~as.character(BusinessName),icon= serviceIcon,group= "Services",
              clusterOptions = markerClusterOptions(showCoverageOnHover = FALSE))
 
-plotVehicleCountWithTime <- function(df, start, end, vehicleType) {
+plotVehicleCountWithTime <- function(df, dateRange, timeRange, vehicleType) {
   if (nrow(df) == 0) {
     return(ggplot() + # Draw ggplot2 plot with text only
              annotate("text",
@@ -69,15 +71,20 @@ plotVehicleCountWithTime <- function(df, start, end, vehicleType) {
                       label = "The data for this camera is not available.") + 
              theme_void())
   }
+  hourRange <- as_hms(with_tz(timeRange, "America/Vancouver"))
   df$time <- as.POSIXct(df$time)
-  df <- df %>% filter(time %within% interval(start, end))
-  myplot <- ggplot(data=df, aes_string(y=vehicleType, x="time")) +
-    geom_line() +
+  df$date <- as.POSIXct(format(df$time, "%Y-%m-%d"))
+  df$station <- as.factor(df$station)
+  df <- df %>% 
+    filter(date %within% interval(dateRange[1], dateRange[2])) %>%
+    filter(as_hms(time) >= hourRange[1] & as_hms(time) <= hourRange[2])
+  myplot <- ggplot(data=df, aes_string(y=vehicleType, x="time", color="station")) +
+    geom_point() +
     geom_smooth(method = 'loess', formula = 'y~x') +
-    scale_x_datetime(date_breaks = "24 hours", date_labels = "%Y-%m-%d %H:%M") +
+    scale_x_datetime(date_breaks = "12 hours", date_labels = "%Y-%m-%d %H:%M", limits = as.POSIXct(paste(dateRange, hourRange), format="%Y-%m-%d %H:%M")) +
     xlab("Time(hour)") +
     ylab(vehicleType) +
-    theme(axis.text.x = element_text(angle = 60, hjust = 1))
+    theme(axis.text.x = element_text(angle = 60, hjust = 1), legend.position="bottom")
   return(myplot)
 }
 
@@ -87,23 +94,28 @@ ui <- dashboardPage(
     useShinyjs(),
     sidebarMenu( id = "sidemenu",
       menuItem("Cam Map", tabName = "basemap", icon = icon("camera")),
-      menuItem("User Inputs", tabName = "userInputs", icon = icon("person")),
+      menuItem("User Inputs", tabName = "userInputs", icon = icon("user")),
       hidden(
+        sliderInput(
+          "dateRange", label = "Choose Date Range:",
+          min = as.POSIXct("2020-12-01 00:00:00"),
+          max = as.POSIXct("2020-12-31 23:59:59"),
+          value = c(as.POSIXct("2020-12-01 00:00:00"),as.POSIXct("2020-12-07 23:59:59")),
+          timeFormat = "%F", ticks = F, animate = T
+        ),
         sliderInput(
           "timeRange", label = "Choose Time Range:",
           min = as.POSIXct("2020-12-01 00:00:00"),
-          max = as.POSIXct("2020-12-31 23:59:59"),
-          value = c(as.POSIXct("2020-12-01 00:00:00"), as.POSIXct("2020-12-07 23:59:59")),
-          timeFormat = "%Y-%m-%d %H:%M", ticks = F, animate = T
+          max = as.POSIXct("2020-12-01 23:59:59"),
+          value = c(as.POSIXct("2020-12-01 00:00:00"), as.POSIXct("2020-12-01 23:59:59")),
+          timeFormat = "%T", ticks = F, animate = T, timezone = "-0800"
         ),
         selectInput(inputId = "camid",
                     label = "Camera ID",
                     choices = cams$station_name,
                     multiple = FALSE),
-        selectInput(inputId = "vehicleType",
-                    label = "Vehicle Type",
-                    choices = VEHICLE_TYPES,
-                    multiple = FALSE)
+        radioButtons("vehicleType", "Vehicle Type:",
+                     VEHICLE_TYPES)
         # checkboxInput("realtimeImg",label = "Display current traffic image", value = TRUE)
       )
     )
@@ -116,7 +128,7 @@ ui <- dashboardPage(
                   leafletOutput("basemap", width = "100%", height = "100%"),
                   absolutePanel(id = "controls", class = "panel panel-default", fixed = TRUE,
                                 draggable = TRUE, top = 60, left = "auto", right = 20, bottom = "auto",
-                                width = 330, height = "auto",
+                                width = 500, height = "auto",
                                 h3("Traffic explorer"),
                                 plotOutput("linePlotVehicleCounts", height = "200"))),
               absolutePanel(id = "camera_img",
@@ -130,21 +142,31 @@ ui <- dashboardPage(
 ########## Server ##########
 
 server <- function(input, output, session) {
-  output$basemap <- renderLeaflet(basemap)
+  output$basemap <- renderLeaflet({
+    basemap
+    })
 
   # current selected camera
-  current_cam <- reactiveValues()
+  current_cam <- reactiveValues(id = NULL, data = NULL, lat = NULL, lng = NULL, selected = TRUE)
+  selected_cams <- reactiveValues(ids = c(), data = c())
   
   # current map center
   map_view <- reactiveValues()
   
+  # to keep track of previously selected marker
+  prev_selected <- reactiveVal()
+  # highlight current selected cam marker
+  proxy <- leafletProxy('basemap')
+
   # dynamically show/hide userInputs in the sidebarMenu
   observeEvent(input$sidemenu, {
     if (input$sidemenu == "userInputs") {
+      shinyjs::show("dateRange")
       shinyjs::show("timeRange")
       shinyjs::show("camid")
       shinyjs::show("vehicleType")
     } else {
+      shinyjs::hide("dateRange")
       shinyjs::hide("timeRange")
       shinyjs::hide("camid")
       shinyjs::hide("vehicleType")
@@ -165,12 +187,44 @@ server <- function(input, output, session) {
     isolate({ 
       updateSelectInput(session, 'camid', selected = marker$id)
     })
+    
+    # toggle selection state
+    current_cam$selected <- !current_cam$selected
+    if (current_cam$selected) {
+      selected_cams$ids <- selected_cams$ids[selected_cams$ids != current_cam$id]
+    } else {
+      selected_cams$ids <- c(selected_cams$ids, current_cam$id)
+    }
+    
+
+    if (!is.null(prev_selected())) {
+      if (prev_selected()$selected) {
+        # de-selecting previous camera
+        proxy %>%
+          addMarkers(popup=as.character(prev_selected()$id),
+                     layerId = as.character(prev_selected()$id),
+                     lng=prev_selected()$lng,
+                     lat=prev_selected()$lat,
+                     icon = camIcon)
+      } else {
+        # re-selecting on the same camera
+        proxy %>%
+          addAwesomeMarkers(popup=as.character(current_cam$id),
+                            layerId = as.character(current_cam$id),
+                            lng=current_cam$lng, 
+                            lat=current_cam$lat,
+                            icon = cam_icon_highlight)
+      }
+    }
+    prev_selected(current_cam)
   })
   
   # Smooth pan map view based on camera selected
   observeEvent(current_cam$id, {
     data <- cams %>% filter(station_name == current_cam$id)
     # Update current_cam data on id change
+    current_cam$lng <- cams[which(cams$station_name == current_cam$id),]$longitude
+    current_cam$lat <- cams[which(cams$station_name == current_cam$id),]$latitude
     current_cam$data <- cams_data %>% filter(station == current_cam$id)
     map_view$lng = data$longitude
     map_view$lat = data$latitude
@@ -180,10 +234,25 @@ server <- function(input, output, session) {
             lng = map_view$lng,
             lat = map_view$lat,
             zoom = map_view$zoom)
+    
+    selected_cams$ids <- c(selected_cams$ids, current_cam$id)
+    print(selected_cams$ids)
+
+    proxy %>%
+      addAwesomeMarkers(popup=as.character(current_cam$id),
+                        layerId = as.character(current_cam$id),
+                        lng=current_cam$lng, 
+                        lat=current_cam$lat,
+                        icon = cam_icon_highlight)
+    
+  })
+
+  observeEvent(selected_cams$ids, {
+    selected_cams$data <- cams_data %>% filter(station %in% selected_cams$ids)
     output$linePlotVehicleCounts <- renderPlot({
-      plotVehicleCountWithTime(current_cam$data, 
-                               input$timeRange[1],
-                               input$timeRange[2],
+      plotVehicleCountWithTime(selected_cams$data, 
+                               as.POSIXct(format(input$dateRange, "%Y-%m-%d")),
+                               input$timeRange,
                                input$vehicleType)
     })
   })
