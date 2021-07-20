@@ -10,6 +10,9 @@ library(hms)
 
 source("biz_data_clean.R")
 
+# Feature toggle
+MULTI_SELECT_TOGGLE = TRUE
+
 # Load data
 cams <- read.csv("data/surrey_desc.csv")
 cams_data <- read.csv("data/surrey_data.csv")
