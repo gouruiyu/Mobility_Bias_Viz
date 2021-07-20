@@ -6,8 +6,7 @@ library(sf)
 library(ggplot2)
 library(dplyr)
 library(lubridate)
-library(DT)
-library (plyr)
+library(hms)
 
 source("biz_data_clean.R")
 
@@ -61,7 +60,7 @@ basemap <- leaflet(data = cams, options = leafletOptions(minZoom = ZOOM_MIN, max
   addMarkers(data=services,popup = ~as.character(BusinessName),icon= serviceIcon,group= "Services",
              clusterOptions = markerClusterOptions(showCoverageOnHover = FALSE))
 
-plotVehicleCountWithTime <- function(df, start, end, vehicleType) {
+plotVehicleCountWithTime <- function(df, dateRange, timeRange, vehicleType) {
   if (nrow(df) == 0) {
     return(ggplot() + # Draw ggplot2 plot with text only
              annotate("text",
@@ -72,16 +71,20 @@ plotVehicleCountWithTime <- function(df, start, end, vehicleType) {
                       label = "The data for this camera is not available.") + 
              theme_void())
   }
+  hourRange <- as_hms(with_tz(timeRange, "America/Vancouver"))
   df$time <- as.POSIXct(df$time)
+  df$date <- as.POSIXct(format(df$time, "%Y-%m-%d"))
   df$station <- as.factor(df$station)
-  df <- df %>% filter(time %within% interval(start, end))
+  df <- df %>% 
+    filter(date %within% interval(dateRange[1], dateRange[2])) %>%
+    filter(as_hms(time) >= hourRange[1] & as_hms(time) <= hourRange[2])
   myplot <- ggplot(data=df, aes_string(y=vehicleType, x="time", color="station")) +
     geom_line() +
     geom_smooth(method = 'loess', formula = 'y~x') +
-    scale_x_datetime(date_breaks = "24 hours", date_labels = "%Y-%m-%d %H:%M") +
+    scale_x_datetime(date_breaks = "12 hours", date_labels = "%Y-%m-%d %H:%M", limits = as.POSIXct(paste(dateRange, hourRange), format="%Y-%m-%d %H:%M")) +
     xlab("Time(hour)") +
     ylab(vehicleType) +
-    theme(axis.text.x = element_text(angle = 60, hjust = 1))
+    theme(axis.text.x = element_text(angle = 60, hjust = 1), legend.position="bottom")
   return(myplot)
 }
 
@@ -94,11 +97,18 @@ ui <- dashboardPage(
       menuItem("User Inputs", tabName = "userInputs", icon = icon("user")),
       hidden(
         sliderInput(
-          "timeRange", label = "Choose Time Range:",
+          "dateRange", label = "Choose Date Range:",
           min = as.POSIXct("2020-12-01 00:00:00"),
           max = as.POSIXct("2020-12-31 23:59:59"),
-          value = c(as.POSIXct("2020-12-01 00:00:00"), as.POSIXct("2020-12-07 23:59:59")),
-          timeFormat = "%Y-%m-%d %H:%M", ticks = F, animate = T
+          value = c(as.POSIXct("2020-12-01 00:00:00"),as.POSIXct("2020-12-07 23:59:59")),
+          timeFormat = "%F", ticks = F, animate = T
+        ),
+        sliderInput(
+          "timeRange", label = "Choose Time Range:",
+          min = as.POSIXct("2020-12-01 00:00:00"),
+          max = as.POSIXct("2020-12-01 23:59:59"),
+          value = c(as.POSIXct("2020-12-01 00:00:00"), as.POSIXct("2020-12-01 23:59:59")),
+          timeFormat = "%T", ticks = F, animate = T, timezone = "-0800"
         ),
         selectInput(inputId = "camid",
                     label = "Camera ID",
@@ -118,7 +128,7 @@ ui <- dashboardPage(
                   leafletOutput("basemap", width = "100%", height = "100%"),
                   absolutePanel(id = "controls", class = "panel panel-default", fixed = TRUE,
                                 draggable = TRUE, top = 60, left = "auto", right = 20, bottom = "auto",
-                                width = 350, height = "auto",
+                                width = 500, height = "auto",
                                 h3("Traffic explorer"),
                                 plotOutput("linePlotVehicleCounts", height = "200"))),
               absolutePanel(id = "camera_img",
@@ -151,10 +161,12 @@ server <- function(input, output, session) {
   # dynamically show/hide userInputs in the sidebarMenu
   observeEvent(input$sidemenu, {
     if (input$sidemenu == "userInputs") {
+      shinyjs::show("dateRange")
       shinyjs::show("timeRange")
       shinyjs::show("camid")
       shinyjs::show("vehicleType")
     } else {
+      shinyjs::hide("dateRange")
       shinyjs::hide("timeRange")
       shinyjs::hide("camid")
       shinyjs::hide("vehicleType")
@@ -239,8 +251,8 @@ server <- function(input, output, session) {
     selected_cams$data <- cams_data %>% filter(station %in% selected_cams$ids)
     output$linePlotVehicleCounts <- renderPlot({
       plotVehicleCountWithTime(selected_cams$data, 
-                               input$timeRange[1],
-                               input$timeRange[2],
+                               as.POSIXct(format(input$dateRange, "%Y-%m-%d")),
+                               input$timeRange,
                                input$vehicleType)
     })
   })
