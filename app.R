@@ -2,10 +2,6 @@ library(shiny)
 library(shinydashboard)
 library(shinyjs)
 library(leaflet)
-library(sf)
-library(ggplot2)
-library(dplyr)
-library(lubridate)
 library(hms)
 
 source("biz_data_clean.R")
@@ -124,7 +120,7 @@ ui <- dashboardPage(
           "timeRange", label = "Choose Time Range:",
           min = as.POSIXct("2020-12-01 00:00:00"),
           max = as.POSIXct("2020-12-01 23:59:59"),
-          value = c(as.POSIXct("2020-12-01 00:00:00"), as.POSIXct("2020-12-01 23:59:59")),
+          value = c(as.POSIXct("2020-12-01 00:00:00"), as.POSIXct("2020-12-01 01:00:00")),
           timeFormat = "%T", ticks = F, animate = T, timezone = "-0800"
         ),
         selectInput(inputId = "camid",
@@ -291,27 +287,27 @@ server <- function(input, output, session) {
   })
   
   #heatmap
+  
+  
+  
+  
   observeEvent({
     input$timeRange
     input$dateRange},
-    {                    # do some work in a block and return a leafletProxy
-      hmdff <- filtered_hm()  # get the filtered data frame
-      lfp <-             # and use this data to create the map
+    {                    
+      hmdff <- filtered_hm()  #
         leafletProxy("basemap", data = hmdff) %>%
         clearHeatmap() %>%
         addHeatmap(
           lng = ~hmdff$longitude,
           lat = ~hmdff$latitude,
-          max = 14,
+          max = max(hmdff$car_count),
           radius = 5,
           blur = 3,
           intensity = ~hmdff$car_count,
           group="Heatmap",
-          gradient = "OrRd"
-        )
-      lfp  # return the leaflet proxy
-    }
-  )
+          gradient = "OrRd")
+    })
   
   
   
