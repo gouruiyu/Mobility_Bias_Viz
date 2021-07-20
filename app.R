@@ -9,6 +9,7 @@ library(lubridate)
 library(hms)
 
 source("biz_data_clean.R")
+source("camera_img.R")
 
 # Load data
 cams <- read.csv("data/surrey_desc.csv")
@@ -134,7 +135,7 @@ ui <- dashboardPage(
               absolutePanel(id = "camera_img",
                             draggable = TRUE, top = "auto", left = "auto" , right = "auto", bottom = 20,
                             width = 300, height = "auto",
-                            imageOutput("testImg", height="auto"))
+                            uiOutput("image"))
     )
   )
 ))
@@ -258,11 +259,15 @@ server <- function(input, output, session) {
   })
   
   # Camera Image
-  output$testImg <- renderImage({
-    filename <- normalizePath(file.path('data/example_cam.jpg'))
-    # Return a list containing the filename and alt text
-    list(src = filename, alt = "Camera Image", width = 300)
-  }, deleteFile = FALSE)
+  # output$testImg <- renderImage({
+  #   filename <- normalizePath(file.path('data/example_cam.jpg'))
+  #   # Return a list containing the filename and alt text
+  #   list(src = test_URI, alt = "Camera Image", width = 300)
+  # }, deleteFile = FALSE)
+  output$image <- renderUI({
+    img_URI = fetchImage(station = current_cam$id)
+    tags$div(tags$img(src = img_URI, width = 300))
+  })
 }
 
 shinyApp(ui = ui, server = server)
