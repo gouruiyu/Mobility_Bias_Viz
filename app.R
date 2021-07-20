@@ -157,7 +157,7 @@ server <- function(input, output, session) {
   map_view <- reactiveValues()
   
   # to keep track of previously selected marker
-  prev_selected <- reactiveVal()
+  prev_selected <- reactiveVal(NULL)
   # highlight current selected cam marker
   proxy <- leafletProxy('basemap')
 
@@ -191,41 +191,36 @@ server <- function(input, output, session) {
       updateSelectInput(session, 'camid', selected = marker$id)
     })
     
-    if (current_cam$selected) {
-      selected_cams$ids <- unique(c(selected_cams$ids, current_cam$id))
-    } else {
-      selected_cams$ids <- selected_cams$ids[selected_cams$ids != current_cam$id]
-    }
-    
+    selected_cams$ids <- unique(c(selected_cams$ids, marker$id))
+    # print(prev_selected()$id)
 
     if (!is.null(prev_selected())) {
-      if (prev_selected()$id == current_cam$id) {
+      if (prev_selected()$id == marker$id) {
+      if (current_cam$selected) {
+        selected_cams$ids <- selected_cams$ids[selected_cams$ids != prev_selected()$id]
+        proxy %>%
+        addMarkers(popup=as.character(prev_selected()$id),
+                   layerId = as.character(prev_selected()$id),
+                   lng=prev_selected()$lng,
+                   lat=prev_selected()$lat,
+                   icon = camIcon)
+      } else {
+        selected_cams$ids <- unique(c(selected_cams$ids, marker$id))
+        proxy %>%
+          addAwesomeMarkers(popup=as.character(marker$id),
+                            layerId = as.character(marker$id),
+                            lng=marker$lng, 
+                            lat=marker$lat,
+                            icon = cam_icon_highlight)
+      }
         # toggle selection state
         current_cam$selected <- !current_cam$selected
       }
-      if (prev_selected()$selected) {
-        # de-selecting previous camera
-        proxy %>%
-          addMarkers(popup=as.character(prev_selected()$id),
-                     layerId = as.character(prev_selected()$id),
-                     lng=prev_selected()$lng,
-                     lat=prev_selected()$lat,
-                     icon = camIcon)
-        selected_cams$ids <- selected_cams$ids[selected_cams$ids != prev_selected()$id]
-      } else {
-        # re-selecting on the same camera
-        proxy %>%
-          addAwesomeMarkers(popup=as.character(current_cam$id),
-                            layerId = as.character(current_cam$id),
-                            lng=current_cam$lng, 
-                            lat=current_cam$lat,
-                            icon = cam_icon_highlight)
-        selected_cams$ids <- unique(c(selected_cams$ids, prev_selected()$id))
-      }
     }
-    prev_selected(current_cam)
-    print(current_cam$id)
-    print(current_cam$selected)
+    prev_selected(marker)
+    # print(current_cam$id)
+    # print(current_cam$selected)
+    # print(selected_cams$ids)
   })
   
   # Smooth pan map view based on camera selected
@@ -252,9 +247,6 @@ server <- function(input, output, session) {
                         lng=current_cam$lng, 
                         lat=current_cam$lat,
                         icon = cam_icon_highlight)
-    # prev_selected(current_cam)
-    print(current_cam$id)
-    print(current_cam$selected)
     
   })
 
