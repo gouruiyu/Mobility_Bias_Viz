@@ -3,9 +3,11 @@
 
 # Data
 data/*
+!data/data_requirement.txt
 
 # Configuration
 config/api.R
+!config/config.txt
 
 # History files
 .Rhistory
