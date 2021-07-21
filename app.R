@@ -259,11 +259,6 @@ server <- function(input, output, session) {
   })
   
   # Camera Image
-  # output$testImg <- renderImage({
-  #   filename <- normalizePath(file.path('data/example_cam.jpg'))
-  #   # Return a list containing the filename and alt text
-  #   list(src = test_URI, alt = "Camera Image", width = 300)
-  # }, deleteFile = FALSE)
   output$image <- renderUI({
     img_URI = NULL
     print("fetch image...")
