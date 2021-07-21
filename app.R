@@ -150,7 +150,7 @@ server <- function(input, output, session) {
     })
 
   # current selected camera
-  current_cam <- reactiveValues(id = NULL, data = NULL, lat = NULL, lng = NULL, selected = TRUE)
+  current_cam <- reactiveValues(id = NULL, data = NULL, lat = NULL, lng = NULL)
   selected_cams <- reactiveValues(ids = c(), data = c())
   
   # current map center
@@ -180,6 +180,7 @@ server <- function(input, output, session) {
   observeEvent(input$camid, {
     if (is.null(input$camid)) return()
     current_cam$id <- input$camid
+    selected_cams$ids <- unique(c(current_cam$id, selected_cams$ids))
   })
   
   # Update current camera according to marker click
@@ -187,40 +188,35 @@ server <- function(input, output, session) {
     marker <- input$basemap_marker_click
     if (is.null(marker$id)) return()
     current_cam$id <- marker$id
-    isolate({ 
-      updateSelectInput(session, 'camid', selected = marker$id)
-    })
-    
-    selected_cams$ids <- unique(c(selected_cams$ids, marker$id))
-    # print(prev_selected()$id)
 
-    if (!is.null(prev_selected())) {
-      if (prev_selected()$id == marker$id) {
-      if (current_cam$selected) {
-        selected_cams$ids <- selected_cams$ids[selected_cams$ids != prev_selected()$id]
-        proxy %>%
-        addMarkers(popup=as.character(prev_selected()$id),
-                   layerId = as.character(prev_selected()$id),
-                   lng=prev_selected()$lng,
-                   lat=prev_selected()$lat,
+    # Leave out the following update to prevent double triggering event
+    # isolate({
+    #   updateSelectInput(session, 'camid', selected = marker$id)
+    # })
+    
+    if (marker$id %in% selected_cams$ids) {
+      selected_cams$ids <- selected_cams$ids[selected_cams$ids != marker$id]
+      proxy %>%
+        addMarkers(popup=as.character(marker$id),
+                   layerId = as.character(marker$id),
+                   lng=marker$lng,
+                   lat=marker$lat,
                    icon = camIcon)
+      if (length(selected_cams$ids) > 0) {
+        current_cam$id <- selected_cams$ids[1]
       } else {
-        selected_cams$ids <- unique(c(selected_cams$ids, marker$id))
-        proxy %>%
-          addAwesomeMarkers(popup=as.character(marker$id),
-                            layerId = as.character(marker$id),
-                            lng=marker$lng, 
-                            lat=marker$lat,
-                            icon = cam_icon_highlight)
+        current_cam$id <- NULL
       }
-        # toggle selection state
-        current_cam$selected <- !current_cam$selected
-      }
+    } 
+    else {
+      selected_cams$ids <- unique(c(marker$id, selected_cams$ids))
+      proxy %>%
+        addAwesomeMarkers(popup=as.character(current_cam$id),
+                          layerId = as.character(current_cam$id),
+                          lng=current_cam$lng,
+                          lat=current_cam$lat,
+                          icon = cam_icon_highlight)
     }
-    prev_selected(marker)
-    # print(current_cam$id)
-    # print(current_cam$selected)
-    # print(selected_cams$ids)
   })
   
   # Smooth pan map view based on camera selected
@@ -238,16 +234,17 @@ server <- function(input, output, session) {
             lng = map_view$lng,
             lat = map_view$lat,
             zoom = map_view$zoom)
-    
-    selected_cams$ids <- unique(c(selected_cams$ids, current_cam$id))
 
-    proxy %>%
-      addAwesomeMarkers(popup=as.character(current_cam$id),
-                        layerId = as.character(current_cam$id),
-                        lng=current_cam$lng, 
-                        lat=current_cam$lat,
-                        icon = cam_icon_highlight)
-    
+    # print(selected_cams$ids)
+    if (current_cam$id %in% selected_cams$ids) {
+        proxy %>%
+          addAwesomeMarkers(popup=as.character(current_cam$id),
+                            layerId = as.character(current_cam$id),
+                            lng=current_cam$lng,
+                            lat=current_cam$lat,
+                            icon = cam_icon_highlight)
+    }
+    # print(selected_cams$ids)
   })
 
   observeEvent(selected_cams$ids, {
