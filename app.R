@@ -146,9 +146,11 @@ ui <- dashboardPage(
 ########## Server ##########
 
 server <- function(input, output, session) {
-  output$basemap <- renderLeaflet({
-    basemap
-    })
+  output$basemap <- renderLeaflet(basemap)
+  
+  # output$sliderValue <- renderText({ saved_bins(); }) 
+  saved_camId <- reactiveVal(isolate(input$camid))
+  update <- reactiveVal(TRUE)
 
   # current selected camera
   current_cam <- reactiveValues(id = NULL, data = NULL, lat = NULL, lng = NULL)
@@ -177,9 +179,12 @@ server <- function(input, output, session) {
   
   # Update current camera according to selected input
   observeEvent(input$camid, {
+    if (update()) saved_camId(input$camid) else update(TRUE)
     if (is.null(input$camid)) return()
     current_cam$id <- input$camid
-    selected_cams$ids <- unique(c(current_cam$id, selected_cams$ids))
+    if (current_cam$id %notin% selected_cams$ids) {
+      selected_cams$ids <- prepend(selected_cams$ids, current_cam$id)
+    }
   })
   
   # Update current camera according to marker click
@@ -188,11 +193,6 @@ server <- function(input, output, session) {
     if (is.null(marker$id)) return()
     current_cam$id <- marker$id
 
-    # Leave out the following update to prevent double triggering event
-    # isolate({
-    #   updateSelectInput(session, 'camid', selected = marker$id)
-    # })
-    
     if (marker$id %in% selected_cams$ids) {
       selected_cams$ids <- selected_cams$ids[selected_cams$ids != marker$id]
       proxy %>%
@@ -208,7 +208,7 @@ server <- function(input, output, session) {
       }
     } 
     else {
-      selected_cams$ids <- unique(c(marker$id, selected_cams$ids))
+      selected_cams$ids <- prepend(selected_cams$ids, current_cam$id)
       proxy %>%
         addAwesomeMarkers(popup=as.character(current_cam$id),
                           layerId = as.character(current_cam$id),
@@ -216,6 +216,9 @@ server <- function(input, output, session) {
                           lat=current_cam$lat,
                           icon = cam_icon_highlight)
     }
+    # Don't trigger camid select input's reactive event
+    update(FALSE)
+    updateSelectInput(session, 'camid', selected = current_cam$id)
   })
   
   # Smooth pan map view based on camera selected
