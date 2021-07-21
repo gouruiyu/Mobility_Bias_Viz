@@ -88,13 +88,29 @@ plotVehicleCountWithTime <- function(df, dateRange, timeRange, vehicleType) {
 }
 
 #fxn for heatmap input
-filter_DT<-function(df,timeRange,dateRange){
+filter_DT<-function(df,timeRange,dateRange,vehicleType){
+  
+  df <- pivot_longer(
+    df,
+    cols = c(
+      "bicycle_count",
+      "bus_count",
+      "car_count",
+      "motorcycle_count",
+      "person_count",
+      "truck_count"
+    ),
+    names_to = "vehicle_type",
+    values_to = "number_instances"
+  )
+  
   hourRange <- as_hms(with_tz(timeRange, "America/Vancouver"))
   df$time <- as.POSIXct(df$time)
   df$date <- as.POSIXct(format(df$time, "%Y-%m-%d"))
   df <- df %>% 
     filter(date %within% interval(dateRange[1], dateRange[2])) %>%
-    filter(as_hms(time) >= hourRange[1] & as_hms(time) <= hourRange[2])
+    filter(as_hms(time) >= hourRange[1] & as_hms(time) <= hourRange[2])%>%
+    filter(vehicle_type==vehicleType)
 }
 
 
@@ -282,18 +298,16 @@ server <- function(input, output, session) {
   
   #heatmap values based on user's input 
   filtered_hm <- reactive({
-    filter_DT(heatmap_data,input$timeRange,as.POSIXct(format(input$dateRange, "%Y-%m-%d")))
+    filter_DT(heatmap_data,input$timeRange,as.POSIXct(format(input$dateRange, "%Y-%m-%d")),
+              input$vehicleType)
 
   })
   
   #heatmap
-  
-  
-  
-  
   observeEvent({
     input$timeRange
-    input$dateRange},
+    input$dateRange
+    input$vehicleType},
     {                    
       hmdff <- filtered_hm()  #
         leafletProxy("basemap", data = hmdff) %>%
@@ -301,10 +315,10 @@ server <- function(input, output, session) {
         addHeatmap(
           lng = ~hmdff$longitude,
           lat = ~hmdff$latitude,
-          max = max(hmdff$car_count),
+          max = max(hmdff$number_instances),
           radius = 5,
           blur = 3,
-          intensity = ~hmdff$car_count,
+          intensity = ~hmdff$number_instances,
           group="Heatmap",
           gradient = "OrRd")
     })
