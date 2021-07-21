@@ -94,6 +94,7 @@ plotVehicleCountWithTime <- function(df, dateRange, timeRange, vehicleType) {
   return(myplot)
 }
 
+
 ui <- dashboardPage(
   dashboardHeader(title = "Unbiased Mobility"),
   dashboardSidebar(
@@ -121,7 +122,21 @@ ui <- dashboardPage(
                     choices = cams$station_name,
                     multiple = FALSE),
         radioButtons("vehicleType", "Vehicle Type:",
-                     VEHICLE_TYPES)
+                     VEHICLE_TYPES),
+        sliderInput(
+          "heat.dateRange", label = "Choose Heat Date Range:",
+          min = as.POSIXct("2020-12-01 00:00:00"),
+          max = as.POSIXct("2020-12-31 23:59:59"),
+          value = c(as.POSIXct("2020-12-01 00:00:00"),as.POSIXct("2020-12-07 23:59:59")),
+          timeFormat = "%F", ticks = F, animate = T
+        ),
+        sliderInput(
+          "heat.timeRange", label = "Choose Heat Time Range:",
+          min = as.POSIXct("2020-12-01 00:00:00"),
+          max = as.POSIXct("2020-12-01 23:59:59"),
+          value = c(as.POSIXct("2020-12-01 00:00:00"), as.POSIXct("2020-12-01 01:00:00")),
+          timeFormat = "%T", ticks = F, animate = T, timezone = "-0800"
+        )
         # checkboxInput("realtimeImg",label = "Display current traffic image", value = TRUE)
       )
     )
@@ -171,11 +186,15 @@ server <- function(input, output, session) {
       shinyjs::show("timeRange")
       shinyjs::show("camid")
       shinyjs::show("vehicleType")
+      shinyjs::show("heat.dateRange")
+      shinyjs::show("heat.timeRange")
     } else {
       shinyjs::hide("dateRange")
       shinyjs::hide("timeRange")
       shinyjs::hide("camid")
       shinyjs::hide("vehicleType")
+      shinyjs::hide("heat.dateRange")
+      shinyjs::hide("heat.timeRange")
     }
   })
   
@@ -264,11 +283,13 @@ server <- function(input, output, session) {
   })
   
   # Camera Image
+
   output$testImg <- renderImage({
     filename <- normalizePath(file.path('data/example_cam.jpg'))
     # Return a list containing the filename and alt text
     list(src = filename, alt = "Camera Image", width = 300)
   }, deleteFile = FALSE)
+
 }
 
 shinyApp(ui = ui, server = server)
