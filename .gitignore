@@ -5,7 +5,7 @@
 data/*
 
 # Configuration
-config/app.json
+config/api.R
 
 # History files
 .Rhistory
