@@ -229,7 +229,8 @@ server <- function(input, output, session) {
                    layerId = as.character(marker$id),
                    lng=marker$lng,
                    lat=marker$lat,
-                   icon = camIcon)
+                   icon = camIcon,
+                   group='Cameras')
       if (length(selected_cams$ids) > 0) {
         current_cam$id <- selected_cams$ids[1]
       } else {
@@ -243,7 +244,8 @@ server <- function(input, output, session) {
                           layerId = as.character(current_cam$id),
                           lng=current_cam$lng,
                           lat=current_cam$lat,
-                          icon = cam_icon_highlight)
+                          icon = cam_icon_highlight,
+                          group='Cameras')
     }
   })
   
@@ -270,7 +272,8 @@ server <- function(input, output, session) {
                             layerId = as.character(current_cam$id),
                             lng=current_cam$lng,
                             lat=current_cam$lat,
-                            icon = cam_icon_highlight)
+                            icon = cam_icon_highlight,
+                            group='Cameras')
     }
     # print(selected_cams$ids)
   })
