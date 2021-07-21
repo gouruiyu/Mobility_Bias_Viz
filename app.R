@@ -6,6 +6,7 @@ library(hms)
 
 source("biz_data_clean.R")
 source("heatmap_function.R")
+source("camera_img.R")
 
 # Feature toggle
 MULTI_SELECT_TOGGLE = TRUE
@@ -166,7 +167,7 @@ ui <- dashboardPage(
               absolutePanel(id = "camera_img",
                             draggable = TRUE, top = "auto", left = "auto" , right = "auto", bottom = 20,
                             width = 300, height = "auto",
-                            imageOutput("testImg", height="auto"))
+                            uiOutput("image", height="auto"))
     )
   )
 ))
@@ -289,11 +290,20 @@ server <- function(input, output, session) {
   })
   
   # Camera Image
-  output$testImg <- renderImage({
-    filename <- normalizePath(file.path('data/example_cam.jpg'))
-    # Return a list containing the filename and alt text
-    list(src = filename, alt = "Camera Image", width = 300)
-  }, deleteFile = FALSE)
+  # output$testImg <- renderImage({
+  #   filename <- normalizePath(file.path('data/example_cam.jpg'))
+  #   # Return a list containing the filename and alt text
+  #   list(src = filename, alt = "Camera Image", width = 300)
+  # }, deleteFile = FALSE)
+  output$image <- renderUI({
+    img_URI = NULL
+    if (!is.null(current_cam$id) & length(selected_cams$ids) == 1) {
+      img_URI = fetchImage(station = current_cam$id)
+    }
+    if (!is.null(img_URI)) {
+      tags$div(tags$img(src = img_URI, width = 300))
+    }
+  })
   
   
   #heatmap values based on user's input 
@@ -322,10 +332,7 @@ server <- function(input, output, session) {
           group="Heatmap",
           gradient = "OrRd")
     })
-  
-  
-  
-  
+ 
 }
 
 
