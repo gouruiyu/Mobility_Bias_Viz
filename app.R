@@ -138,7 +138,7 @@ ui <- dashboardPage(
               absolutePanel(id = "camera_img",
                             draggable = TRUE, top = "auto", left = "auto" , right = "auto", bottom = 20,
                             width = 300, height = "auto",
-                            imageOutput("testImg", height="auto"))
+                            uiOutput("image", height="auto"))
     )
   )
 ))
@@ -264,11 +264,7 @@ server <- function(input, output, session) {
   # }, deleteFile = FALSE)
   output$image <- renderUI({
     img_URI = NULL
-    print("fetch image...")
-    print(current_cam$selected)
-    print(length(selected_cams$ids))
-    print("end of fetch")
-    if (current_cam$selected & length(selected_cams$ids) == 1) {
+    if (!is.null(current_cam$id) & length(selected_cams$ids) == 1) {
       img_URI = fetchImage(station = current_cam$id)
     }
     if (!is.null(img_URI)) {
