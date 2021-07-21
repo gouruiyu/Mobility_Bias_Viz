@@ -155,9 +155,7 @@ server <- function(input, output, session) {
   
   # current map center
   map_view <- reactiveValues()
-  
-  # to keep track of previously selected marker
-  prev_selected <- reactiveVal(NULL)
+
   # highlight current selected cam marker
   proxy <- leafletProxy('basemap')
 
