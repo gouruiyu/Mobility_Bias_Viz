@@ -9,6 +9,7 @@ library(lubridate)
 library(hms)
 
 source("biz_data_clean.R")
+source("camera_img.R")
 
 # Feature toggle
 MULTI_SELECT_TOGGLE = TRUE
@@ -256,11 +257,24 @@ server <- function(input, output, session) {
   })
   
   # Camera Image
-  output$testImg <- renderImage({
-    filename <- normalizePath(file.path('data/example_cam.jpg'))
-    # Return a list containing the filename and alt text
-    list(src = filename, alt = "Camera Image", width = 300)
-  }, deleteFile = FALSE)
+  # output$testImg <- renderImage({
+  #   filename <- normalizePath(file.path('data/example_cam.jpg'))
+  #   # Return a list containing the filename and alt text
+  #   list(src = filename, alt = "Camera Image", width = 300)
+  # }, deleteFile = FALSE)
+  output$image <- renderUI({
+    img_URI = NULL
+    print("fetch image...")
+    print(current_cam$selected)
+    print(length(selected_cams$ids))
+    print("end of fetch")
+    if (current_cam$selected & length(selected_cams$ids) == 1) {
+      img_URI = fetchImage(station = current_cam$id)
+    }
+    if (!is.null(img_URI)) {
+      tags$div(tags$img(src = img_URI, width = 300))
+    }
+  })
 }
 
 shinyApp(ui = ui, server = server)
