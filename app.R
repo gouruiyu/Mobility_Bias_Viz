@@ -10,6 +10,7 @@ library(hms)
 
 source("biz_data_clean.R")
 source("camera_img.R")
+source("stats/undercount_model.R")
 
 # Feature toggle
 MULTI_SELECT_TOGGLE = TRUE
@@ -17,6 +18,10 @@ MULTI_SELECT_TOGGLE = TRUE
 # Load data
 cams <- read.csv("data/surrey_desc.csv")
 cams_data <- read.csv("data/surrey_data.csv")
+
+# Load data for stats model
+car_detected_vs_counted = read.csv("data/car_detected_vs_counted.csv")
+uc_correction_model = fitModel(car_detected_vs_counted)
 
 # Camera Icon asset
 camIcon <- makeIcon(
