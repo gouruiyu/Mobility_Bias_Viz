@@ -9,14 +9,12 @@ library(lubridate)
 library(hms)
 
 source("biz_data_clean.R")
-source("camera_img.R")
-
-# Feature toggle
-MULTI_SELECT_TOGGLE = TRUE
 
 # Load data
 cams <- read.csv("data/surrey_desc.csv")
 cams_data <- read.csv("data/surrey_data.csv")
+bikeroute_df <- st_read("data/bikeroutes_in_4326.geojson", quiet = TRUE) %>%
+  st_transform(crs = 4326)
 
 # Camera Icon asset
 camIcon <- makeIcon(
@@ -48,21 +46,25 @@ basemap <- leaflet(data = cams, options = leafletOptions(minZoom = ZOOM_MIN, max
                       "Liquor Stores",
                       "Health and Medicine",
                       "Business and Finance",
-                      "Services"),
+                      "Services",
+                      "Bike Route"),
     options=layersControlOptions(collapsed = TRUE))%>%
   hideGroup(c("Stores",
               "Food and Restaurants",
               "Liquor Stores",
               "Health and Medicine",
               "Business and Finance",
-              "Services"))%>%
+              "Services",
+              "Bike Route"))%>%
   addMarkers(data=stores, popup = ~as.character(BusinessName),icon= storeIcon,group="Stores",clusterOptions = markerClusterOptions(maxClusterRadius = 30,showCoverageOnHover = FALSE))%>%
   addMarkers(data=food.and.restaurant,popup = ~as.character(BusinessName), icon=restaurantIcon, group= "Food and Restaurants",clusterOptions = markerClusterOptions(maxClusterRadius = 30,showCoverageOnHover = FALSE))%>%
   addMarkers(data=alcohol,popup = ~as.character(BusinessName), icon= liquorIcon, group= "Liquor Stores",clusterOptions = markerClusterOptions(maxClusterRadius = 30,showCoverageOnHover = FALSE))%>%
   addMarkers(data=health_medicine, popup = ~as.character(BusinessName),icon= healthIcon, group= "Health and Medicine",clusterOptions = markerClusterOptions(maxClusterRadius = 30,showCoverageOnHover = FALSE))%>%
   addMarkers(data=finances,popup = ~as.character(BusinessName),icon= bizIcon, group="Business and Finance",clusterOptions = markerClusterOptions(maxClusterRadius = 30,showCoverageOnHover = FALSE))%>%
   addMarkers(data=services,popup = ~as.character(BusinessName),icon= serviceIcon,group= "Services",
-             clusterOptions = markerClusterOptions(showCoverageOnHover = FALSE))
+             clusterOptions = markerClusterOptions(showCoverageOnHover = FALSE))%>%
+  addPolygons(color = "#656565", weight = 3, smoothFactor = 0.5, fillOpacity = 0, opacity = 1,
+              data = bikeroute_df, group= "Bike Route")
 
 plotVehicleCountWithTime <- function(df, dateRange, timeRange, vehicleType) {
   if (nrow(df) == 0) {
@@ -138,7 +140,7 @@ ui <- dashboardPage(
               absolutePanel(id = "camera_img",
                             draggable = TRUE, top = "auto", left = "auto" , right = "auto", bottom = 20,
                             width = 300, height = "auto",
-                            uiOutput("image", height="auto"))
+                            imageOutput("testImg", height="auto"))
     )
   )
 ))
@@ -146,18 +148,19 @@ ui <- dashboardPage(
 ########## Server ##########
 
 server <- function(input, output, session) {
-  output$basemap <- renderLeaflet(basemap)
-  
-  saved_camId <- reactiveVal(isolate(input$camid))
-  update <- reactiveVal(TRUE)
+  output$basemap <- renderLeaflet({
+    basemap
+    })
 
   # current selected camera
-  current_cam <- reactiveValues(id = NULL, data = NULL, lat = NULL, lng = NULL)
+  current_cam <- reactiveValues(id = NULL, data = NULL, lat = NULL, lng = NULL, selected = TRUE)
   selected_cams <- reactiveValues(ids = c(), data = c())
   
   # current map center
   map_view <- reactiveValues()
-
+  
+  # to keep track of previously selected marker
+  prev_selected <- reactiveVal()
   # highlight current selected cam marker
   proxy <- leafletProxy('basemap')
 
@@ -178,12 +181,8 @@ server <- function(input, output, session) {
   
   # Update current camera according to selected input
   observeEvent(input$camid, {
-    if (update()) saved_camId(input$camid) else update(TRUE)
     if (is.null(input$camid)) return()
     current_cam$id <- input$camid
-    if (current_cam$id %notin% selected_cams$ids) {
-      selected_cams$ids <- prepend(selected_cams$ids, current_cam$id)
-    }
   })
   
   # Update current camera according to marker click
@@ -191,33 +190,39 @@ server <- function(input, output, session) {
     marker <- input$basemap_marker_click
     if (is.null(marker$id)) return()
     current_cam$id <- marker$id
-
-    if (marker$id %in% selected_cams$ids) {
-      selected_cams$ids <- selected_cams$ids[selected_cams$ids != marker$id]
-      proxy %>%
-        addMarkers(popup=as.character(marker$id),
-                   layerId = as.character(marker$id),
-                   lng=marker$lng,
-                   lat=marker$lat,
-                   icon = camIcon)
-      if (length(selected_cams$ids) > 0) {
-        current_cam$id <- selected_cams$ids[1]
-      } else {
-        current_cam$id <- NULL
-      }
-    } 
-    else {
-      selected_cams$ids <- prepend(selected_cams$ids, current_cam$id)
-      proxy %>%
-        addAwesomeMarkers(popup=as.character(current_cam$id),
-                          layerId = as.character(current_cam$id),
-                          lng=current_cam$lng,
-                          lat=current_cam$lat,
-                          icon = cam_icon_highlight)
+    isolate({ 
+      updateSelectInput(session, 'camid', selected = marker$id)
+    })
+    
+    # toggle selection state
+    current_cam$selected <- !current_cam$selected
+    if (current_cam$selected) {
+      selected_cams$ids <- selected_cams$ids[selected_cams$ids != current_cam$id]
+    } else {
+      selected_cams$ids <- c(selected_cams$ids, current_cam$id)
     }
-    # Don't trigger camid select input's reactive event
-    update(FALSE)
-    updateSelectInput(session, 'camid', selected = current_cam$id)
+    
+
+    if (!is.null(prev_selected())) {
+      if (prev_selected()$selected) {
+        # de-selecting previous camera
+        proxy %>%
+          addMarkers(popup=as.character(prev_selected()$id),
+                     layerId = as.character(prev_selected()$id),
+                     lng=prev_selected()$lng,
+                     lat=prev_selected()$lat,
+                     icon = camIcon)
+      } else {
+        # re-selecting on the same camera
+        proxy %>%
+          addAwesomeMarkers(popup=as.character(current_cam$id),
+                            layerId = as.character(current_cam$id),
+                            lng=current_cam$lng, 
+                            lat=current_cam$lat,
+                            icon = cam_icon_highlight)
+      }
+    }
+    prev_selected(current_cam)
   })
   
   # Smooth pan map view based on camera selected
@@ -235,17 +240,17 @@ server <- function(input, output, session) {
             lng = map_view$lng,
             lat = map_view$lat,
             zoom = map_view$zoom)
+    
+    selected_cams$ids <- c(selected_cams$ids, current_cam$id)
+    print(selected_cams$ids)
 
-    # print(selected_cams$ids)
-    if (current_cam$id %in% selected_cams$ids) {
-        proxy %>%
-          addAwesomeMarkers(popup=as.character(current_cam$id),
-                            layerId = as.character(current_cam$id),
-                            lng=current_cam$lng,
-                            lat=current_cam$lat,
-                            icon = cam_icon_highlight)
-    }
-    # print(selected_cams$ids)
+    proxy %>%
+      addAwesomeMarkers(popup=as.character(current_cam$id),
+                        layerId = as.character(current_cam$id),
+                        lng=current_cam$lng, 
+                        lat=current_cam$lat,
+                        icon = cam_icon_highlight)
+    
   })
 
   observeEvent(selected_cams$ids, {
@@ -259,20 +264,11 @@ server <- function(input, output, session) {
   })
   
   # Camera Image
-  # output$testImg <- renderImage({
-  #   filename <- normalizePath(file.path('data/example_cam.jpg'))
-  #   # Return a list containing the filename and alt text
-  #   list(src = filename, alt = "Camera Image", width = 300)
-  # }, deleteFile = FALSE)
-  output$image <- renderUI({
-    img_URI = NULL
-    if (!is.null(current_cam$id) & length(selected_cams$ids) == 1) {
-      img_URI = fetchImage(station = current_cam$id)
-    }
-    if (!is.null(img_URI)) {
-      tags$div(tags$img(src = img_URI, width = 300))
-    }
-  })
+  output$testImg <- renderImage({
+    filename <- normalizePath(file.path('data/example_cam.jpg'))
+    # Return a list containing the filename and alt text
+    list(src = filename, alt = "Camera Image", width = 300)
+  }, deleteFile = FALSE)
 }
 
 shinyApp(ui = ui, server = server)
