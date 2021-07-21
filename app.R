@@ -148,7 +148,6 @@ ui <- dashboardPage(
 server <- function(input, output, session) {
   output$basemap <- renderLeaflet(basemap)
   
-  # output$sliderValue <- renderText({ saved_bins(); }) 
   saved_camId <- reactiveVal(isolate(input$camid))
   update <- reactiveVal(TRUE)
 
