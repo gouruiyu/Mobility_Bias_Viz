@@ -90,6 +90,7 @@ plotVehicleCountWithTime <- function(df, dateRange, timeRange, vehicleType, disp
   df <- df %>% 
     filter(date %within% interval(dateRange[1], dateRange[2])) %>%
     filter(as_hms(time) >= hourRange[1] & as_hms(time) <= hourRange[2])
+
   myplot <- ggplot(data=df, aes_string(y=vehicleType, x="time", color="station")) + 
     scale_x_datetime(date_breaks = "12 hours", date_labels = "%Y-%m-%d %H:%M", limits = as.POSIXct(paste(dateRange, hourRange), format="%Y-%m-%d %H:%M")) +
     xlab("Time(hour)") +
@@ -98,15 +99,14 @@ plotVehicleCountWithTime <- function(df, dateRange, timeRange, vehicleType, disp
   
   if (!displayCorrection) {
      myplot <- myplot +
-      geom_point() +
-      geom_smooth(method = 'loess', formula = 'y~x')
+      geom_point()
   } else {
     # Bias corrected line
     pred <- predict(uc_correction_model, newdata=data.frame(detected = df[[vehicleType]]))
     myplot <- myplot + 
-      geom_point(data=df, aes(y=pred)) +
-      geom_smooth(method = 'loess', formula = 'y~x')
+      geom_point(data=df, aes(y=pred))
   }
+  myplot <- myplot + geom_smooth(method = 'loess', formula = 'y~x')
   return(myplot)
 }
 
@@ -138,7 +138,7 @@ ui <- dashboardPage(
                     multiple = FALSE),
         radioButtons("vehicleType", "Vehicle Type:",
                      VEHICLE_TYPES),
-        checkboxInput("displayCorrection", label = "Correct for undercounting", value = FALSE)
+        checkboxInput("displayCorrection", label = "Correct for undercounting (only effective for car type)", value = FALSE)
       )
     )
   ),
