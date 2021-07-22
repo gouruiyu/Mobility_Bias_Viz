@@ -14,6 +14,7 @@ fetchRealtimeImg <- function(station) {
     URI <- NULL
   }
   # return the up-to-date image for camera station
+  # station <- 'enc_no10_kgbv_cam1' # NULL camera
   request <-
     paste0(imgret_realtime_base,
            imgret_realtime_endpoint,
@@ -26,15 +27,25 @@ fetchRealtimeImg <- function(station) {
     print(request)
   }
   cont <- content(response)
-  if (cont$statusCode == 200) {
-    if (cont$isBase64Encoded) {
-      if (DEBUG_MODE) {
-        print("Request success!")
-      }
-      URI = paste0("data:image/png;base64,", cont$body)
-    }
-  } else {
+  
+  # FIXME: need Dave to change API
+  attach(cont)
+  returnNUll = exists('errorType')
+  detach(cont)
+  if (returnNUll) {
+    print("return NULL")
     URI = NULL
+  } else {
+    if (cont$statusCode == 200) {
+      if (cont$isBase64Encoded) {
+        if (DEBUG_MODE) {
+          print("Request success!")
+        }
+        URI = paste0("data:image/png;base64,", cont$body)
+      }
+    } else {
+      URI = NULL
+    }
   }
   return(URI)
 }
