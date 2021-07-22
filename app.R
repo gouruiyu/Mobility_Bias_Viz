@@ -41,6 +41,12 @@ LABELS=c("Bike Lanes","Boulevard Multi-Use Pathway",
          "Neighbourhood Bike Route",
          "Protected Bike Lanes",
          "Shared Traffic")
+pal<-colorFactor(palette="Paired", levels=c("Bike Lanes","Boulevard Multi-Use Pathway",
+                                            "Boulevard Separated Multi-Use Pathway",
+                                            "Cycling-Permitted Sidewalk",
+                                            "Neighbourhood Bike Route",
+                                            "Protected Bike Lanes",
+                                            "Shared Traffic"))
 ########## UI ##########
 
 basemap <- leaflet(data = cams, options = leafletOptions(minZoom = ZOOM_MIN, maxZoom = ZOOM_MAX)) %>%
@@ -75,7 +81,7 @@ basemap <- leaflet(data = cams, options = leafletOptions(minZoom = ZOOM_MIN, max
             colors = COLOR_LEGEND,
             labels= LABELS,
             title= "Bike Route Type", group= "Bike Route")%>%
-    addPolygons(data=bikes,weight = 4, color = ~pal(BIKE_INFRASTRUCTURE_TYPE), fill = FALSE, group= 'Bike Route')
+    addPolygons(data=bike_routes,weight = 4, color = ~pal(BIKE_INFRASTRUCTURE_TYPE), fill = FALSE, group= 'Bike Route')
 
   
 
