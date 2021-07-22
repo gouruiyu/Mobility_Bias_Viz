@@ -267,7 +267,7 @@ server <- function(input, output, session) {
   output$image <- renderUI({
     img_URI = NULL
     if (!is.null(current_cam$id) & length(selected_cams$ids) == 1) {
-      img_URI = fetchImage(station = current_cam$id)
+      img_URI = fetchRealtimeImg(station = current_cam$id)
     }
     if (!is.null(img_URI)) {
       tags$div(tags$img(src = img_URI, width = 300))
