@@ -201,6 +201,11 @@ server <- function(input, output, session) {
   observeEvent(input$camid, {
     if (is.null(input$camid)) return()
     current_cam$id <- input$camid
+
+    if (current_cam$id %notin% selected_cams$ids) {
+      selected_cams$ids <- c(current_cam$id, selected_cams$ids)
+    }
+
   })
   
   # Update current camera according to marker click
@@ -239,6 +244,17 @@ server <- function(input, output, session) {
                             lat=current_cam$lat,
                             icon = cam_icon_highlight)
       }
+
+    } 
+    else {
+      selected_cams$ids <- c(current_cam$id, selected_cams$ids)
+      proxy %>%
+        addAwesomeMarkers(popup=as.character(current_cam$id),
+                          layerId = as.character(current_cam$id),
+                          lng=current_cam$lng,
+                          lat=current_cam$lat,
+                          icon = cam_icon_highlight)
+
     }
     prev_selected(current_cam)
   })
@@ -282,11 +298,22 @@ server <- function(input, output, session) {
   })
   
   # Camera Image
-  output$testImg <- renderImage({
-    filename <- normalizePath(file.path('data/example_cam.jpg'))
-    # Return a list containing the filename and alt text
-    list(src = filename, alt = "Camera Image", width = 300)
-  }, deleteFile = FALSE)
+
+  # output$testImg <- renderImage({
+  #   filename <- normalizePath(file.path('data/example_cam.jpg'))
+  #   # Return a list containing the filename and alt text
+  #   list(src = filename, alt = "Camera Image", width = 300)
+  # }, deleteFile = FALSE)
+  output$image <- renderUI({
+    img_URI = NULL
+    if (!is.null(current_cam$id) & length(selected_cams$ids) == 1) {
+      img_URI = fetchRealtimeImg(station = current_cam$id)
+    }
+    if (!is.null(img_URI)) {
+      tags$div(tags$img(src = img_URI, width = 300))
+    }
+  })
+
 }
 
 shinyApp(ui = ui, server = server)
