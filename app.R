@@ -13,7 +13,8 @@ source("biz_data_clean.R")
 # Load data
 cams <- read.csv("data/surrey_desc.csv")
 cams_data <- read.csv("data/surrey_data.csv")
-bike_routes<-readLines("data/bikeroutes_in_4326.geojson") %>% paste(collapse = "\n")
+bike_routes<-st_read("data/bikeroutes_in_4326.geojson", quiet = TRUE) %>%
+  st_transform(crs = 4326)
 
 # Camera Icon asset
 camIcon <- makeIcon(
@@ -32,6 +33,14 @@ SURREY_LNG <- -122.8
 ZOOM_MIN = 10
 ZOOM_MAX = 18
 
+COLOR_LEGEND=c('#A6CEE3',"#1F78B4","#B2DF8A","#33A02C","#FB9A99","#E31A1C","#FDBF6F")
+
+LABELS=c("Bike Lanes","Boulevard Multi-Use Pathway",
+         "Boulevard Separated Multi-Use Pathway",
+         "Cycling-Permitted Sidewalk",
+         "Neighbourhood Bike Route",
+         "Protected Bike Lanes",
+         "Shared Traffic")
 ########## UI ##########
 
 basemap <- leaflet(data = cams, options = leafletOptions(minZoom = ZOOM_MIN, maxZoom = ZOOM_MAX)) %>%
@@ -62,7 +71,13 @@ basemap <- leaflet(data = cams, options = leafletOptions(minZoom = ZOOM_MIN, max
   addMarkers(data=finances,popup = ~as.character(BusinessName),icon= bizIcon, group="Business and Finance",clusterOptions = markerClusterOptions(maxClusterRadius = 30,showCoverageOnHover = FALSE))%>%
   addMarkers(data=services,popup = ~as.character(BusinessName),icon= serviceIcon,group= "Services",
              clusterOptions = markerClusterOptions(showCoverageOnHover = FALSE))%>%
-  addGeoJSON(bike_routes, weight = 3, color = "#1a0582", fill = FALSE, group= "Bike Route")
+  addLegend("topleft",
+            colors = COLOR_LEGEND,
+            labels= LABELS,
+            title= "Bike Route Type", group= "Bike Route")%>%
+    addPolygons(data=bikes,weight = 4, color = ~pal(BIKE_INFRASTRUCTURE_TYPE), fill = FALSE, group= 'Bike Route')
+
+  
 
 plotVehicleCountWithTime <- function(df, dateRange, timeRange, vehicleType) {
   if (nrow(df) == 0) {
