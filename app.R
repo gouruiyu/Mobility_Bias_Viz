@@ -13,8 +13,7 @@ source("biz_data_clean.R")
 # Load data
 cams <- read.csv("data/surrey_desc.csv")
 cams_data <- read.csv("data/surrey_data.csv")
-bikeroute_df <- st_read("data/bikeroutes_in_4326.geojson", quiet = TRUE) %>%
-  st_transform(crs = 4326)
+bike_routes<-readLines("data/bikeroutes_in_4326.geojson") %>% paste(collapse = "\n")
 
 # Camera Icon asset
 camIcon <- makeIcon(
@@ -63,8 +62,7 @@ basemap <- leaflet(data = cams, options = leafletOptions(minZoom = ZOOM_MIN, max
   addMarkers(data=finances,popup = ~as.character(BusinessName),icon= bizIcon, group="Business and Finance",clusterOptions = markerClusterOptions(maxClusterRadius = 30,showCoverageOnHover = FALSE))%>%
   addMarkers(data=services,popup = ~as.character(BusinessName),icon= serviceIcon,group= "Services",
              clusterOptions = markerClusterOptions(showCoverageOnHover = FALSE))%>%
-  addPolygons(color = "#656565", weight = 3, smoothFactor = 0.5, fillOpacity = 0, opacity = 1,
-              data = bikeroute_df, group= "Bike Route")
+  addGeoJSON(bike_routes, weight = 3, color = "#000000", fill = FALSE, group= "Bike Route")
 
 plotVehicleCountWithTime <- function(df, dateRange, timeRange, vehicleType) {
   if (nrow(df) == 0) {
@@ -122,21 +120,7 @@ ui <- dashboardPage(
                     choices = cams$station_name,
                     multiple = FALSE),
         radioButtons("vehicleType", "Vehicle Type:",
-                     VEHICLE_TYPES),
-        sliderInput(
-          "heat.dateRange", label = "Choose Heat Date Range:",
-          min = as.POSIXct("2020-12-01 00:00:00"),
-          max = as.POSIXct("2020-12-31 23:59:59"),
-          value = c(as.POSIXct("2020-12-01 00:00:00"),as.POSIXct("2020-12-07 23:59:59")),
-          timeFormat = "%F", ticks = F, animate = T
-        ),
-        sliderInput(
-          "heat.timeRange", label = "Choose Heat Time Range:",
-          min = as.POSIXct("2020-12-01 00:00:00"),
-          max = as.POSIXct("2020-12-01 23:59:59"),
-          value = c(as.POSIXct("2020-12-01 00:00:00"), as.POSIXct("2020-12-01 01:00:00")),
-          timeFormat = "%T", ticks = F, animate = T, timezone = "-0800"
-        )
+                     VEHICLE_TYPES)
         # checkboxInput("realtimeImg",label = "Display current traffic image", value = TRUE)
       )
     )
@@ -186,15 +170,15 @@ server <- function(input, output, session) {
       shinyjs::show("timeRange")
       shinyjs::show("camid")
       shinyjs::show("vehicleType")
-      shinyjs::show("heat.dateRange")
-      shinyjs::show("heat.timeRange")
+
+
+
     } else {
       shinyjs::hide("dateRange")
       shinyjs::hide("timeRange")
       shinyjs::hide("camid")
       shinyjs::hide("vehicleType")
-      shinyjs::hide("heat.dateRange")
-      shinyjs::hide("heat.timeRange")
+
     }
   })
   
@@ -283,13 +267,12 @@ server <- function(input, output, session) {
   })
   
   # Camera Image
-
   output$testImg <- renderImage({
     filename <- normalizePath(file.path('data/example_cam.jpg'))
     # Return a list containing the filename and alt text
     list(src = filename, alt = "Camera Image", width = 300)
   }, deleteFile = FALSE)
-
 }
 
 shinyApp(ui = ui, server = server)
+
