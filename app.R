@@ -182,7 +182,7 @@ server <- function(input, output, session) {
     if (is.null(input$camid)) return()
     current_cam$id <- input$camid
     if (current_cam$id %notin% selected_cams$ids) {
-      selected_cams$ids <- prepend(selected_cams$ids, current_cam$id)
+      selected_cams$ids <- c(current_cam$id, selected_cams$ids)
     }
   })
   
@@ -207,7 +207,7 @@ server <- function(input, output, session) {
       }
     } 
     else {
-      selected_cams$ids <- prepend(selected_cams$ids, current_cam$id)
+      selected_cams$ids <- c(current_cam$id, selected_cams$ids)
       proxy %>%
         addAwesomeMarkers(popup=as.character(current_cam$id),
                           layerId = as.character(current_cam$id),
