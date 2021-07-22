@@ -12,7 +12,17 @@ source("biz_data_clean.R")
 # Load data
 cams <- read.csv("data/surrey_desc.csv")
 cams_data <- read.csv("data/surrey_data.csv")
+surrey_fsa<-readLines("data/surrey_boundary_with_FSA.geojson") %>% paste(collapse = "\n")
 
+SURREY_LAT <- 49.15
+SURREY_LNG <- -122.8
+ZOOM_MIN = 10
+ZOOM_MAX = 18
+
+leaflet() %>% setView(lng = -98.583, lat = 39.833, zoom = 3) %>%
+  addTiles() %>%
+  setView(lng = SURREY_LNG, lat = SURREY_LAT, zoom = (ZOOM_MIN+ZOOM_MAX)/2)%>%
+  addGeoJSON(surrey_boundaries, weight = 3, color = "#000000", fill = FALSE)
 
 # Camera Icon asset
 camIcon <- makeIcon(
@@ -56,7 +66,8 @@ basemap <- leaflet(data = cams, options = leafletOptions(minZoom = ZOOM_MIN, max
   addMarkers(data=health_medicine, popup = ~as.character(BusinessName),icon= healthIcon, group= "Health and Medicine",clusterOptions = markerClusterOptions(maxClusterRadius = 30,showCoverageOnHover = FALSE))%>%
   addMarkers(data=finances,popup = ~as.character(BusinessName),icon= bizIcon, group="Business and Finance",clusterOptions = markerClusterOptions(maxClusterRadius = 30,showCoverageOnHover = FALSE))%>%
   addMarkers(data=services,popup = ~as.character(BusinessName),icon= serviceIcon,group= "Services",
-             clusterOptions = markerClusterOptions(showCoverageOnHover = FALSE))
+             clusterOptions = markerClusterOptions(showCoverageOnHover = FALSE))%>%
+  addGeoJSON(surrey_boundaries, weight = 3, color = "#000000", fill = FALSE)
 
 plotVehicleCountWithTime <- function(df, start, end, vehicleType) {
   if (nrow(df) == 0) {
