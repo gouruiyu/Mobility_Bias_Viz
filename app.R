@@ -62,7 +62,7 @@ basemap <- leaflet(data = cams, options = leafletOptions(minZoom = ZOOM_MIN, max
   addMarkers(data=finances,popup = ~as.character(BusinessName),icon= bizIcon, group="Business and Finance",clusterOptions = markerClusterOptions(maxClusterRadius = 30,showCoverageOnHover = FALSE))%>%
   addMarkers(data=services,popup = ~as.character(BusinessName),icon= serviceIcon,group= "Services",
              clusterOptions = markerClusterOptions(showCoverageOnHover = FALSE))%>%
-  addGeoJSON(bike_routes, weight = 3, color = "#000000", fill = FALSE, group= "Bike Route")
+  addGeoJSON(bike_routes, weight = 3, color = "#1a0582", fill = FALSE, group= "Bike Route")
 
 plotVehicleCountWithTime <- function(df, dateRange, timeRange, vehicleType) {
   if (nrow(df) == 0) {
