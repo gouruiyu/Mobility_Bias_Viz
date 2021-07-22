@@ -6,23 +6,19 @@ library(sf)
 library(ggplot2)
 library(dplyr)
 library(lubridate)
+library(hms)
 
 source("biz_data_clean.R")
+source("camera_img.R")
+
+# Feature toggle
+MULTI_SELECT_TOGGLE = TRUE
 
 # Load data
 cams <- read.csv("data/surrey_desc.csv")
 cams_data <- read.csv("data/surrey_data.csv")
 surrey_fsa<-readLines("data/surrey_boundary_with_FSA.geojson") %>% paste(collapse = "\n")
 
-SURREY_LAT <- 49.15
-SURREY_LNG <- -122.8
-ZOOM_MIN = 10
-ZOOM_MAX = 18
-
-leaflet() %>% setView(lng = -98.583, lat = 39.833, zoom = 3) %>%
-  addTiles() %>%
-  setView(lng = SURREY_LNG, lat = SURREY_LAT, zoom = (ZOOM_MIN+ZOOM_MAX)/2)%>%
-  addGeoJSON(surrey_boundaries, weight = 3, color = "#000000", fill = FALSE)
 
 # Camera Icon asset
 camIcon <- makeIcon(
@@ -30,6 +26,8 @@ camIcon <- makeIcon(
   iconWidth = 20, iconHeight = 20,
   iconAnchorX = 10, iconAnchorY = 10
 )
+# highlighted icon style
+cam_icon_highlight <- makeAwesomeIcon(icon = 'camera', markerColor = 'red')
 
 # Other Constants
 
@@ -69,7 +67,7 @@ basemap <- leaflet(data = cams, options = leafletOptions(minZoom = ZOOM_MIN, max
              clusterOptions = markerClusterOptions(showCoverageOnHover = FALSE))%>%
   addGeoJSON(surrey_boundaries, weight = 3, color = "#000000", fill = FALSE)
 
-plotVehicleCountWithTime <- function(df, start, end, vehicleType) {
+plotVehicleCountWithTime <- function(df, dateRange, timeRange, vehicleType) {
   if (nrow(df) == 0) {
     return(ggplot() + # Draw ggplot2 plot with text only
              annotate("text",
@@ -80,15 +78,20 @@ plotVehicleCountWithTime <- function(df, start, end, vehicleType) {
                       label = "The data for this camera is not available.") + 
              theme_void())
   }
+  hourRange <- as_hms(with_tz(timeRange, "America/Vancouver"))
   df$time <- as.POSIXct(df$time)
-  df <- df %>% filter(time %within% interval(start, end))
-  myplot <- ggplot(data=df, aes_string(y=vehicleType, x="time")) +
-    geom_line() +
+  df$date <- as.POSIXct(format(df$time, "%Y-%m-%d"))
+  df$station <- as.factor(df$station)
+  df <- df %>% 
+    filter(date %within% interval(dateRange[1], dateRange[2])) %>%
+    filter(as_hms(time) >= hourRange[1] & as_hms(time) <= hourRange[2])
+  myplot <- ggplot(data=df, aes_string(y=vehicleType, x="time", color="station")) +
+    geom_point() +
     geom_smooth(method = 'loess', formula = 'y~x') +
-    scale_x_datetime(date_breaks = "24 hours", date_labels = "%Y-%m-%d %H:%M") +
+    scale_x_datetime(date_breaks = "12 hours", date_labels = "%Y-%m-%d %H:%M", limits = as.POSIXct(paste(dateRange, hourRange), format="%Y-%m-%d %H:%M")) +
     xlab("Time(hour)") +
     ylab(vehicleType) +
-    theme(axis.text.x = element_text(angle = 60, hjust = 1))
+    theme(axis.text.x = element_text(angle = 60, hjust = 1), legend.position="bottom")
   return(myplot)
 }
 
@@ -98,23 +101,28 @@ ui <- dashboardPage(
     useShinyjs(),
     sidebarMenu( id = "sidemenu",
       menuItem("Cam Map", tabName = "basemap", icon = icon("camera")),
-      menuItem("User Inputs", tabName = "userInputs", icon = icon("person")),
+      menuItem("User Inputs", tabName = "userInputs", icon = icon("user")),
       hidden(
+        sliderInput(
+          "dateRange", label = "Choose Date Range:",
+          min = as.POSIXct("2020-12-01 00:00:00"),
+          max = as.POSIXct("2020-12-31 23:59:59"),
+          value = c(as.POSIXct("2020-12-01 00:00:00"),as.POSIXct("2020-12-07 23:59:59")),
+          timeFormat = "%F", ticks = F, animate = T
+        ),
         sliderInput(
           "timeRange", label = "Choose Time Range:",
           min = as.POSIXct("2020-12-01 00:00:00"),
-          max = as.POSIXct("2020-12-31 23:59:59"),
-          value = c(as.POSIXct("2020-12-01 00:00:00"), as.POSIXct("2020-12-07 23:59:59")),
-          timeFormat = "%Y-%m-%d %H:%M", ticks = F, animate = T
+          max = as.POSIXct("2020-12-01 23:59:59"),
+          value = c(as.POSIXct("2020-12-01 00:00:00"), as.POSIXct("2020-12-01 23:59:59")),
+          timeFormat = "%T", ticks = F, animate = T, timezone = "-0800"
         ),
         selectInput(inputId = "camid",
                     label = "Camera ID",
                     choices = cams$station_name,
                     multiple = FALSE),
-        selectInput(inputId = "vehicleType",
-                    label = "Vehicle Type",
-                    choices = VEHICLE_TYPES,
-                    multiple = FALSE)
+        radioButtons("vehicleType", "Vehicle Type:",
+                     VEHICLE_TYPES)
         # checkboxInput("realtimeImg",label = "Display current traffic image", value = TRUE)
       )
     )
@@ -127,13 +135,13 @@ ui <- dashboardPage(
                   leafletOutput("basemap", width = "100%", height = "100%"),
                   absolutePanel(id = "controls", class = "panel panel-default", fixed = TRUE,
                                 draggable = TRUE, top = 60, left = "auto", right = 20, bottom = "auto",
-                                width = 330, height = "auto",
+                                width = 500, height = "auto",
                                 h3("Traffic explorer"),
                                 plotOutput("linePlotVehicleCounts", height = "200"))),
               absolutePanel(id = "camera_img",
                             draggable = TRUE, top = "auto", left = "auto" , right = "auto", bottom = 20,
                             width = 300, height = "auto",
-                            imageOutput("testImg", height="auto"))
+                            uiOutput("image", height="auto"))
     )
   )
 ))
@@ -142,20 +150,29 @@ ui <- dashboardPage(
 
 server <- function(input, output, session) {
   output$basemap <- renderLeaflet(basemap)
+  
+  saved_camId <- reactiveVal(isolate(input$camid))
+  update <- reactiveVal(TRUE)
 
   # current selected camera
-  current_cam <- reactiveValues()
+  current_cam <- reactiveValues(id = NULL, data = NULL, lat = NULL, lng = NULL)
+  selected_cams <- reactiveValues(ids = c(), data = c())
   
   # current map center
   map_view <- reactiveValues()
-  
+
+  # highlight current selected cam marker
+  proxy <- leafletProxy('basemap')
+
   # dynamically show/hide userInputs in the sidebarMenu
   observeEvent(input$sidemenu, {
     if (input$sidemenu == "userInputs") {
+      shinyjs::show("dateRange")
       shinyjs::show("timeRange")
       shinyjs::show("camid")
       shinyjs::show("vehicleType")
     } else {
+      shinyjs::hide("dateRange")
       shinyjs::hide("timeRange")
       shinyjs::hide("camid")
       shinyjs::hide("vehicleType")
@@ -164,8 +181,12 @@ server <- function(input, output, session) {
   
   # Update current camera according to selected input
   observeEvent(input$camid, {
+    if (update()) saved_camId(input$camid) else update(TRUE)
     if (is.null(input$camid)) return()
     current_cam$id <- input$camid
+    if (current_cam$id %notin% selected_cams$ids) {
+      selected_cams$ids <- prepend(selected_cams$ids, current_cam$id)
+    }
   })
   
   # Update current camera according to marker click
@@ -173,15 +194,41 @@ server <- function(input, output, session) {
     marker <- input$basemap_marker_click
     if (is.null(marker$id)) return()
     current_cam$id <- marker$id
-    isolate({ 
-      updateSelectInput(session, 'camid', selected = marker$id)
-    })
+
+    if (marker$id %in% selected_cams$ids) {
+      selected_cams$ids <- selected_cams$ids[selected_cams$ids != marker$id]
+      proxy %>%
+        addMarkers(popup=as.character(marker$id),
+                   layerId = as.character(marker$id),
+                   lng=marker$lng,
+                   lat=marker$lat,
+                   icon = camIcon)
+      if (length(selected_cams$ids) > 0) {
+        current_cam$id <- selected_cams$ids[1]
+      } else {
+        current_cam$id <- NULL
+      }
+    } 
+    else {
+      selected_cams$ids <- prepend(selected_cams$ids, current_cam$id)
+      proxy %>%
+        addAwesomeMarkers(popup=as.character(current_cam$id),
+                          layerId = as.character(current_cam$id),
+                          lng=current_cam$lng,
+                          lat=current_cam$lat,
+                          icon = cam_icon_highlight)
+    }
+    # Don't trigger camid select input's reactive event
+    update(FALSE)
+    updateSelectInput(session, 'camid', selected = current_cam$id)
   })
   
   # Smooth pan map view based on camera selected
   observeEvent(current_cam$id, {
     data <- cams %>% filter(station_name == current_cam$id)
     # Update current_cam data on id change
+    current_cam$lng <- cams[which(cams$station_name == current_cam$id),]$longitude
+    current_cam$lat <- cams[which(cams$station_name == current_cam$id),]$latitude
     current_cam$data <- cams_data %>% filter(station == current_cam$id)
     map_view$lng = data$longitude
     map_view$lat = data$latitude
@@ -191,20 +238,44 @@ server <- function(input, output, session) {
             lng = map_view$lng,
             lat = map_view$lat,
             zoom = map_view$zoom)
+
+    # print(selected_cams$ids)
+    if (current_cam$id %in% selected_cams$ids) {
+        proxy %>%
+          addAwesomeMarkers(popup=as.character(current_cam$id),
+                            layerId = as.character(current_cam$id),
+                            lng=current_cam$lng,
+                            lat=current_cam$lat,
+                            icon = cam_icon_highlight)
+    }
+    # print(selected_cams$ids)
+  })
+
+  observeEvent(selected_cams$ids, {
+    selected_cams$data <- cams_data %>% filter(station %in% selected_cams$ids)
     output$linePlotVehicleCounts <- renderPlot({
-      plotVehicleCountWithTime(current_cam$data, 
-                               input$timeRange[1],
-                               input$timeRange[2],
+      plotVehicleCountWithTime(selected_cams$data, 
+                               as.POSIXct(format(input$dateRange, "%Y-%m-%d")),
+                               input$timeRange,
                                input$vehicleType)
     })
   })
   
   # Camera Image
-  output$testImg <- renderImage({
-    filename <- normalizePath(file.path('data/example_cam.jpg'))
-    # Return a list containing the filename and alt text
-    list(src = filename, alt = "Camera Image", width = 300)
-  }, deleteFile = FALSE)
+  # output$testImg <- renderImage({
+  #   filename <- normalizePath(file.path('data/example_cam.jpg'))
+  #   # Return a list containing the filename and alt text
+  #   list(src = filename, alt = "Camera Image", width = 300)
+  # }, deleteFile = FALSE)
+  output$image <- renderUI({
+    img_URI = NULL
+    if (!is.null(current_cam$id) & length(selected_cams$ids) == 1) {
+      img_URI = fetchImage(station = current_cam$id)
+    }
+    if (!is.null(img_URI)) {
+      tags$div(tags$img(src = img_URI, width = 300))
+    }
+  })
 }
 
 shinyApp(ui = ui, server = server)
