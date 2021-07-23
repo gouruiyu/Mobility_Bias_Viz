@@ -200,8 +200,6 @@ server <- function(input, output, session) {
       flyTo(lng = ifelse(input$neighbourhood_names == "SURREY", -122.7953,  data$long),
               lat = ifelse(input$neighbourhood_names == "SURREY", 49.10714,  data$lat),
               zoom = ifelse(input$neighbourhood_names == "SURREY", 11, 12))
-    
-    
   })
   
   saved_camId <- reactiveVal(isolate(input$camid))
