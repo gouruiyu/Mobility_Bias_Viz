@@ -16,6 +16,7 @@ source("stats/ampm_comparison_model.R")
 source("camera_img.R")
 source("stats/undercount_model.R")
 source("readBoundaries.R")
+source("bikevars.R")
 
 # Feature toggle
 MULTI_SELECT_TOGGLE = TRUE
@@ -25,6 +26,8 @@ MULTI_SELECT_TOGGLE = TRUE
 cams <- read.csv("data/surrey_desc.csv")
 cams_data <- read.csv("data/surrey_data.csv")
 neighbourhood<-readBoundaries('data/surrey_city_boundary.json')
+bike_routes <- st_read("data/bike_routes.json", quiet = TRUE) %>%
+  st_transform(crs = 4326)
 #sort by neighbourhood
 neighbourhood_names <- neighbourhood$NAME %>%
   as.character(.) %>%
@@ -50,20 +53,7 @@ SURREY_LNG <- -122.8
 ZOOM_MIN = 10
 ZOOM_MAX = 18
 
-COLOR_LEGEND=c('#A6CEE3',"#1F78B4","#B2DF8A","#33A02C","#FB9A99","#E31A1C","#FDBF6F")
 
-LABELS=c("Bike Lanes","Boulevard Multi-Use Pathway",
-         "Boulevard Separated Multi-Use Pathway",
-         "Cycling-Permitted Sidewalk",
-         "Neighbourhood Bike Route",
-         "Protected Bike Lanes",
-         "Shared Traffic")
-pal<-colorFactor(palette="Paired", levels=c("Bike Lanes","Boulevard Multi-Use Pathway",
-                                            "Boulevard Separated Multi-Use Pathway",
-                                            "Cycling-Permitted Sidewalk",
-                                            "Neighbourhood Bike Route",
-                                            "Protected Bike Lanes",
-                                            "Shared Traffic"))
 ########## UI ##########
 
 basemap <- leaflet(data = cams, options = leafletOptions(minZoom = ZOOM_MIN, maxZoom = ZOOM_MAX)) %>%
@@ -93,13 +83,7 @@ basemap <- leaflet(data = cams, options = leafletOptions(minZoom = ZOOM_MIN, max
   addMarkers(data=health_medicine, popup = ~as.character(BusinessName),icon= healthIcon, group= "Health and Medicine",clusterOptions = markerClusterOptions(maxClusterRadius = 30,showCoverageOnHover = FALSE))%>%
   addMarkers(data=finances,popup = ~as.character(BusinessName),icon= bizIcon, group="Business and Finance",clusterOptions = markerClusterOptions(maxClusterRadius = 30,showCoverageOnHover = FALSE))%>%
   addMarkers(data=services,popup = ~as.character(BusinessName),icon= serviceIcon,group= "Services",
-             clusterOptions = markerClusterOptions(showCoverageOnHover = FALSE))%>%
-  addLegend("topleft",
-            colors = COLOR_LEGEND,
-            labels= LABELS,
-            title= "Bike Route Type", group= "Bike Route")%>%
-    addPolygons(data=bike_routes,weight = 4, color = ~pal(BIKE_INFRASTRUCTURE_TYPE), fill = FALSE, group= 'Bike Route')
-
+             clusterOptions = markerClusterOptions(showCoverageOnHover = FALSE))
   
 
 plotVehicleCountWithTime <- function(df, dateRange, timeRange, vehicleType, weekdayOnly, displayCorrection=FALSE) {
@@ -230,13 +214,20 @@ server <- function(input, output, session) {
         dplyr::filter(NAME %in% c("CITY CENTRE", "CLOVERDALE", "FLEETWOOD", "GUILDFORD",
                                   "NEWTON", "SOUTH SURREY", "WHALLEY"))
     } else{
-      data <- neighbourhood %>% 
+      data <- neighbourhood %>%
         dplyr::filter(NAME == input$neighbourhood_names)}
-    
+
     leafletProxy("basemap", data= data) %>%
       clearShapes() %>%
       addPolygons(color = "#141722", weight = 3, smoothFactor = 0.5,
                   fillOpacity = 0, opacity = 0.2)%>%
+      addPolygons(data=bike_routes,weight = 4, color = ~palBike(BIKE_INFRASTRUCTURE_TYPE), opacity=0.3,fill = FALSE,
+                  group="Bike Route")%>%
+      addLegend("bottomleft",
+                colors = BIKE_COLOR_LEGEND,
+                labels= BIKE_LABELS,
+                title= "Bike Lanes",
+                group="Bike Route")%>%
       setView(lng = ifelse(input$neighbourhood_names == "SURREY", -122.7953,  data$long),
               lat = ifelse(input$neighbourhood_names == "SURREY", 49.10714,  data$lat),
               zoom = ifelse(input$neighbourhood_names == "SURREY", 11, 12))
