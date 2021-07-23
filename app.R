@@ -24,10 +24,12 @@ MULTI_SELECT_TOGGLE = TRUE
 cams <- read.csv("data/surrey_desc.csv")
 cams_data <- read.csv("data/surrey_data.csv")
 neighbourhood<-readBoundaries('data/surrey_city_boundary.json')
+
 #sort by neighbourhood
 neighbourhood_names <- neighbourhood$NAME %>%
   as.character(.) %>%
   sort()
+
 # Load undercount correction model
 car_detected_vs_counted = read.csv("data/car_detected_vs_counted.csv")
 uc_correction_model = fitModel(car_detected_vs_counted)
@@ -42,6 +44,9 @@ camIcon <- makeIcon(
 cam_icon_highlight <- makeAwesomeIcon(icon = 'camera', markerColor = 'red')
 
 # Other Constants
+NEIGHBOURHOODS <- c("CITY CENTRE", "CLOVERDALE", "FLEETWOOD", "GUILDFORD",
+                         "NEWTON", "SOUTH SURREY", "WHALLEY")
+VEHICLE_TYPES_NAME <- c("Car", "Truck", "Bus", "Bicycle", "Motorcycle", "Person")
 VEHICLE_TYPES <- c("car_count", "truck_count", "bus_count", "bicycle_count", "motorcycle_count", "person_count")
 SURREY_LAT <- 49.15
 SURREY_LNG <- -122.8
@@ -135,6 +140,10 @@ ui <- dashboardPage(
         choices=(neighbourhood_names),
         selected= "SURREY"
       ),
+      selectInput(inputId = "camid",
+                  label = "Camera ID",
+                  choices = cams$station_name,
+                  multiple = FALSE),
       sliderInput(
         "dateRange", label = "Choose Date Range:",
         min = as.POSIXct("2020-12-01 00:00:00"),
@@ -149,14 +158,10 @@ ui <- dashboardPage(
         value = c(as.POSIXct("2020-12-01 00:00:00"), as.POSIXct("2020-12-01 23:59:59")),
         timeFormat = "%T", ticks = F, animate = T, timezone = "-0800"
       ),
-      actionButton(inputId = "amHour", label = "AM Hours"),
-      actionButton(inputId = "pmHour", label = "PM Hours"),
-      selectInput(inputId = "camid",
-                  label = "Camera ID",
-                  choices = cams$station_name,
-                  multiple = FALSE),
-      radioButtons("vehicleType", "Vehicle Type:",
-                   VEHICLE_TYPES),
+      actionBttn(inputId = "amHour", label = "AM Hours", color = "primary", style = "fill"),
+      actionBttn(inputId = "pmHour", label = "PM Hours", color = "primary", style = "fill"),
+      radioButtons("vehicleType", "Vehicle Type:", choiceNames = VEHICLE_TYPES_NAME,
+                   choiceValues = VEHICLE_TYPES),
       checkboxInput("displayCorrection", label = "Correct for undercounting (only effective for car type)", value = FALSE)
     )
   ),
@@ -177,7 +182,7 @@ ui <- dashboardPage(
                                   width = "100%", height = "auto"
                                 ),
                                 box(
-                                  title = "AM VS PM Biases",
+                                  title = "AM VS PM Biases (car count ONLY)",
                                   DT::dataTableOutput("ampmPairTable"),
                                   collapsible = T,
                                   width = "100%", height = "auto"
@@ -200,17 +205,16 @@ server <- function(input, output, session) {
   observeEvent(input$neighbourhood_names,{
     req(input$neighbourhood_names)
     if(input$neighbourhood_names =="SURREY"){
-      data<- neighbourhood %>%
-        dplyr::filter(NAME %in% c("CITY CENTRE", "CLOVERDALE", "FLEETWOOD", "GUILDFORD",
-                                  "NEWTON", "SOUTH SURREY", "WHALLEY"))
-    } else{
+      data <- neighbourhood %>%
+        dplyr::filter(NAME %in% NEIGHBOURHOODS)
+    } else {
       data <- neighbourhood %>% 
         dplyr::filter(NAME == input$neighbourhood_names)}
     
     leafletProxy("basemap", data= data) %>%
       clearShapes() %>%
       addPolygons(color = "#141722", weight = 3, smoothFactor = 0.5,
-                  fillOpacity = 0, opacity = 0.2)%>%
+                  fillOpacity = 0, opacity = 0.2) %>%
       setView(lng = ifelse(input$neighbourhood_names == "SURREY", -122.7953,  data$long),
               lat = ifelse(input$neighbourhood_names == "SURREY", 49.10714,  data$lat),
               zoom = ifelse(input$neighbourhood_names == "SURREY", 11, 12))
@@ -223,6 +227,7 @@ server <- function(input, output, session) {
   current_cam <- reactiveValues(id = NULL, data = NULL, lat = NULL, lng = NULL)
   selected_cams <- reactiveValues(ids = c(), data = c())
   
+  # AM and PM's same-intersection/nearest-neighbor camera comparison results
   paired_am_res <- reactiveValues()
   paired_pm_res <- reactiveValues()
   
@@ -328,7 +333,7 @@ server <- function(input, output, session) {
     output$ampmPairTable <- DT::renderDataTable({
       paired_am_res <- pair_analyze_am(selected_cams, as.POSIXct(format(input$dateRange, "%Y-%m-%d")), input$weekdayOnly)
       paired_pm_res <- pair_analyze_pm(selected_cams, as.POSIXct(format(input$dateRange, "%Y-%m-%d")), input$weekdayOnly)
-      return(DT::datatable(rbind(data.frame(paired_am_res), data.frame(paired_pm_res)), rownames = FALSE))
+      return(DT::datatable(rbind(data.frame(paired_am_res), data.frame(paired_pm_res)), rownames = FALSE, options = list(dom = 't', autoWidth = FALSE, scrollX = TRUE)))
     })
   })
   

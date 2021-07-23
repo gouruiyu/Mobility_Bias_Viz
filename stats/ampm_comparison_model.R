@@ -76,7 +76,8 @@ pair_analyze_am <- function(sel_cams, dateRange, weekdayOnly) {
   }
   paired_am_stat <- paired_am_test$statistic
   paired_am_pval <- paired_am_test$p.value
-  return(list(rush_hour = "AM", t = paired_am_stat, pval = paired_am_pval))
+  paired_am_sig <- paired_am_pval < 0.05
+  return(list(rush_hour = "AM", t = paired_am_stat, pval = paired_am_pval, isSignificant = paired_am_sig))
 }
 
 pair_analyze_pm <- function(sel_cams, dateRange, weekdayOnly) {
@@ -98,6 +99,7 @@ pair_analyze_pm <- function(sel_cams, dateRange, weekdayOnly) {
   }
   paired_pm_stat <- paired_pm_test$statistic
   paired_pm_pval <- paired_pm_test$p.value
-  return(list(rush_hour = "PM", t = paired_pm_stat, pval = paired_pm_pval))
+  paired_pm_sig <- paired_pm_pval < 0.05
+  return(list(rush_hour = "PM", t = paired_pm_stat, pval = paired_pm_pval, isSignificant = paired_pm_sig))
 }
 
