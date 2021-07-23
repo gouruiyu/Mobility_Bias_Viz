@@ -14,7 +14,6 @@ library(DT)
 source("biz_data_clean.R")
 source("stats/ampm_comparison_model.R")
 source("camera_img.R")
-source("readBoundaries.R")
 source("stats/undercount_model.R")
 
 # Feature toggle
@@ -23,10 +22,6 @@ MULTI_SELECT_TOGGLE = TRUE
 # Load data
 cams <- read.csv("data/surrey_desc.csv")
 cams_data <- read.csv("data/surrey_data.csv")
-neighbourhood <- readBoundaries("data/surrey_city_boundary.json")
-neighbourhood_names <- neighbourhood$NAME %>%
-  as.character(.) %>%
-  sort()
 
 # Load undercount correction model
 car_detected_vs_counted = read.csv("data/car_detected_vs_counted.csv")
@@ -129,37 +124,6 @@ ui <- dashboardPage(
     sidebarMenu( id = "sidemenu",
       menuItem("Cam Map", tabName = "basemap", icon = icon("camera")),
       menuItem("User Inputs", tabName = "userInputs", icon = icon("user")),
-
-      hidden(
-        selectInput(
-          "neighbourhood_names",
-          label = "Select a Neighbourhood:",
-          choices = neighbourhood_names,
-          selected = "SURREY"
-        ),
-        sliderInput(
-          "dateRange", label = "Choose Date Range:",
-          min = as.POSIXct("2020-12-01 00:00:00"),
-          max = as.POSIXct("2020-12-31 23:59:59"),
-          value = c(as.POSIXct("2020-12-01 00:00:00"),as.POSIXct("2020-12-07 23:59:59")),
-          timeFormat = "%F", ticks = F, animate = T
-        ),
-        sliderInput(
-          "timeRange", label = "Choose Time Range:",
-          min = as.POSIXct("2020-12-01 00:00:00"),
-          max = as.POSIXct("2020-12-01 23:59:59"),
-          value = c(as.POSIXct("2020-12-01 00:00:00"), as.POSIXct("2020-12-01 23:59:59")),
-          timeFormat = "%T", ticks = F, animate = T, timezone = "-0800"
-        ),
-        selectInput(inputId = "camid",
-                    label = "Camera ID",
-                    choices = cams$station_name,
-                    multiple = FALSE),
-        radioButtons("vehicleType", "Vehicle Type:",
-                     VEHICLE_TYPES),
-        checkboxInput("displayCorrection", label = "Correct for undercounting (only effective for car type)", value = FALSE)
-      )
-
       sliderInput(
         "dateRange", label = "Choose Date Range:",
         min = as.POSIXct("2020-12-01 00:00:00"),
@@ -183,7 +147,6 @@ ui <- dashboardPage(
       radioButtons("vehicleType", "Vehicle Type:",
                    VEHICLE_TYPES),
       checkboxInput("displayCorrection", label = "Correct for undercounting (only effective for car type)", value = FALSE)
-
     )
   ),
   dashboardBody(
@@ -223,26 +186,6 @@ ui <- dashboardPage(
 server <- function(input, output, session) {
   output$basemap <- renderLeaflet(basemap)
   
-  #surrey boundaries
-  observeEvent(input$neighbourhood_names,{
-    req(input$neighbourhood_names)
-    if(input$neighbourhood_names =="SURREY"){
-      data<- neighbourhood %>%
-        dplyr::filter(NAME %in% c("CITY CENTRE", "CLOVERDALE", "FLEETWOOD", "GUILDFORD",
-                                  "NEWTON", "SOUTH SURREY", "WHALLEY"))
-    } else{
-      data <- neighbourhood %>% 
-        dplyr::filter(NAME == input$neighbourhood_names)}
-    
-    leafletProxy("basemap", data= data) %>%
-      clearShapes() %>%
-      addPolygons(color = "#141722", weight = 3, smoothFactor = 0.5,
-                  fillOpacity = 0, opacity = 1)%>%
-      flyTo(lng = ifelse(input$neighbourhood_names == "SURREY", -122.7953,  data$long),
-              lat = ifelse(input$neighbourhood_names == "SURREY", 49.10714,  data$lat),
-              zoom = ifelse(input$neighbourhood_names == "SURREY", 11, 12))
-  })
-  
   saved_camId <- reactiveVal(isolate(input$camid))
   update <- reactiveVal(TRUE)
 
@@ -258,26 +201,6 @@ server <- function(input, output, session) {
 
   # highlight current selected cam marker
   proxy <- leafletProxy('basemap')
-
-
-  # dynamically show/hide userInputs in the sidebarMenu
-  observeEvent(input$sidemenu, {
-    if (input$sidemenu == "userInputs") {
-      shinyjs::show("neighbourhood_names")
-      shinyjs::show("dateRange")
-      shinyjs::show("timeRange")
-      shinyjs::show("camid")
-      shinyjs::show("vehicleType")
-      shinyjs::show("displayCorrection")
-    } else {
-      shinyjs::hide("neighbourhood_names")
-      shinyjs::hide("dateRange")
-      shinyjs::hide("timeRange")
-      shinyjs::hide("camid")
-      shinyjs::hide("vehicleType")
-      shinyjs::hide("displayCorrection")
-    }
-
   
   observeEvent(input$amHour, {
     updateSliderInput(session, "timeRange", value = c(as.POSIXct("2020-12-01 07:00:00"), as.POSIXct("2020-12-01 10:00:00")), timeFormat = "%T")
@@ -285,7 +208,6 @@ server <- function(input, output, session) {
   
   observeEvent(input$pmHour, {
     updateSliderInput(session, "timeRange", value = c(as.POSIXct("2020-12-01 16:00:00"), as.POSIXct("2020-12-01 19:00:00")), timeFormat = "%T")
-
   })
   
   # Update current camera according to selected input
