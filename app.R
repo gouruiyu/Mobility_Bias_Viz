@@ -210,7 +210,7 @@ server <- function(input, output, session) {
     leafletProxy("basemap", data= data) %>%
       clearShapes() %>%
       addPolygons(color = "#141722", weight = 3, smoothFactor = 0.5,
-                  fillOpacity = 0, opacity = 1)%>%
+                  fillOpacity = 0, opacity = 0.2)%>%
       setView(lng = ifelse(input$neighbourhood_names == "SURREY", -122.7953,  data$long),
               lat = ifelse(input$neighbourhood_names == "SURREY", 49.10714,  data$lat),
               zoom = ifelse(input$neighbourhood_names == "SURREY", 11, 12))
