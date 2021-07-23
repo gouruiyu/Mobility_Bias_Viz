@@ -21,12 +21,9 @@ MULTI_SELECT_TOGGLE = TRUE
 cams <- read.csv("data/surrey_desc.csv")
 cams_data <- read.csv("data/surrey_data.csv")
 neighbourhood <- readBoundaries("data/surrey_city_boundary.json")
-
-
 neighbourhood_names <- neighbourhood$NAME %>%
   as.character(.) %>%
   sort()
-
 
 # Load undercount correction model
 car_detected_vs_counted = read.csv("data/car_detected_vs_counted.csv")
@@ -132,7 +129,6 @@ ui <- dashboardPage(
           label = "Select a Neighbourhood:",
           choices = neighbourhood_names,
           selected = "SURREY"
-          
         ),
         sliderInput(
           "dateRange", label = "Choose Date Range:",
