@@ -7,9 +7,11 @@ library(ggplot2)
 library(dplyr)
 library(lubridate)
 library(hms)
+library(rlang)
 
 source("biz_data_clean.R")
 source("camera_img.R")
+source("stats/undercount_model.R")
 
 # Feature toggle
 MULTI_SELECT_TOGGLE = TRUE
@@ -17,6 +19,10 @@ MULTI_SELECT_TOGGLE = TRUE
 # Load data
 cams <- read.csv("data/surrey_desc.csv")
 cams_data <- read.csv("data/surrey_data.csv")
+
+# Load undercount correction model
+car_detected_vs_counted = read.csv("data/car_detected_vs_counted.csv")
+uc_correction_model = fitModel(car_detected_vs_counted)
 
 # Camera Icon asset
 camIcon <- makeIcon(
@@ -28,7 +34,6 @@ camIcon <- makeIcon(
 cam_icon_highlight <- makeAwesomeIcon(icon = 'camera', markerColor = 'red')
 
 # Other Constants
-
 VEHICLE_TYPES <- c("car_count", "truck_count", "bus_count", "bicycle_count", "motorcycle_count", "person_count")
 SURREY_LAT <- 49.15
 SURREY_LNG <- -122.8
@@ -64,7 +69,7 @@ basemap <- leaflet(data = cams, options = leafletOptions(minZoom = ZOOM_MIN, max
   addMarkers(data=services,popup = ~as.character(BusinessName),icon= serviceIcon,group= "Services",
              clusterOptions = markerClusterOptions(showCoverageOnHover = FALSE))
 
-plotVehicleCountWithTime <- function(df, dateRange, timeRange, vehicleType) {
+plotVehicleCountWithTime <- function(df, dateRange, timeRange, vehicleType, displayCorrection=FALSE) {
   if (nrow(df) == 0) {
     return(ggplot() + # Draw ggplot2 plot with text only
              annotate("text",
@@ -75,6 +80,10 @@ plotVehicleCountWithTime <- function(df, dateRange, timeRange, vehicleType) {
                       label = "The data for this camera is not available.") + 
              theme_void())
   }
+  
+  # Toggle off display correction if vehicle type if not car for now
+  displayCorrection = (displayCorrection) & (vehicleType == 'car_count')
+  
   hourRange <- as_hms(with_tz(timeRange, "America/Vancouver"))
   df$time <- as.POSIXct(df$time)
   df$date <- as.POSIXct(format(df$time, "%Y-%m-%d"))
@@ -82,13 +91,23 @@ plotVehicleCountWithTime <- function(df, dateRange, timeRange, vehicleType) {
   df <- df %>% 
     filter(date %within% interval(dateRange[1], dateRange[2])) %>%
     filter(as_hms(time) >= hourRange[1] & as_hms(time) <= hourRange[2])
-  myplot <- ggplot(data=df, aes_string(y=vehicleType, x="time", color="station")) +
-    geom_point() +
-    geom_smooth(method = 'loess', formula = 'y~x') +
+
+  myplot <- ggplot(data=df, aes_string(y=vehicleType, x="time", color="station")) + 
     scale_x_datetime(date_breaks = "12 hours", date_labels = "%Y-%m-%d %H:%M", limits = as.POSIXct(paste(dateRange, hourRange), format="%Y-%m-%d %H:%M")) +
     xlab("Time(hour)") +
     ylab(vehicleType) +
     theme(axis.text.x = element_text(angle = 60, hjust = 1), legend.position="bottom")
+  
+  if (!displayCorrection) {
+     myplot <- myplot +
+      geom_point()
+  } else {
+    # Bias corrected line
+    pred <- predict(uc_correction_model, newdata=data.frame(detected = df[[vehicleType]]))
+    myplot <- myplot + 
+      geom_point(data=df, aes(y=pred))
+  }
+  myplot <- myplot + geom_smooth(method = 'loess', formula = 'y~x')
   return(myplot)
 }
 
@@ -119,8 +138,8 @@ ui <- dashboardPage(
                     choices = cams$station_name,
                     multiple = FALSE),
         radioButtons("vehicleType", "Vehicle Type:",
-                     VEHICLE_TYPES)
-        # checkboxInput("realtimeImg",label = "Display current traffic image", value = TRUE)
+                     VEHICLE_TYPES),
+        checkboxInput("displayCorrection", label = "Correct for undercounting (only effective for car type)", value = FALSE)
       )
     )
   ),
@@ -168,11 +187,13 @@ server <- function(input, output, session) {
       shinyjs::show("timeRange")
       shinyjs::show("camid")
       shinyjs::show("vehicleType")
+      shinyjs::show("displayCorrection")
     } else {
       shinyjs::hide("dateRange")
       shinyjs::hide("timeRange")
       shinyjs::hide("camid")
       shinyjs::hide("vehicleType")
+      shinyjs::hide("displayCorrection")
     }
   })
   
@@ -248,22 +269,21 @@ server <- function(input, output, session) {
     # print(selected_cams$ids)
   })
 
-  observeEvent(selected_cams$ids, {
-    selected_cams$data <- cams_data %>% filter(station %in% selected_cams$ids)
+  # Update data to display
+  observeEvent(selected_cams$ids, {selected_cams$data <- cams_data %>% filter(station %in% selected_cams$ids)})
+  
+  # Update line plot             
+  observe({
     output$linePlotVehicleCounts <- renderPlot({
       plotVehicleCountWithTime(selected_cams$data, 
                                as.POSIXct(format(input$dateRange, "%Y-%m-%d")),
                                input$timeRange,
-                               input$vehicleType)
+                               input$vehicleType,
+                               input$displayCorrection)
     })
   })
   
   # Camera Image
-  # output$testImg <- renderImage({
-  #   filename <- normalizePath(file.path('data/example_cam.jpg'))
-  #   # Return a list containing the filename and alt text
-  #   list(src = filename, alt = "Camera Image", width = 300)
-  # }, deleteFile = FALSE)
   output$image <- renderUI({
     img_URI = NULL
     if (!is.null(current_cam$id) & length(selected_cams$ids) == 1) {
