@@ -43,4 +43,4 @@ data/* folder is gitignored for confidential concerns. The code expects the foll
 
 ### Credit:
 
-blackmad for geojson data
+City of Surrey for JSON data
