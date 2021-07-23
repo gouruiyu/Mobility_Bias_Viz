@@ -14,20 +14,3 @@ palBike<-colorFactor(palette="Paired", levels=c("Bike Lanes","Boulevard Multi-Us
                                             "Neighbourhood Bike Route",
                                             "Protected Bike Lanes",
                                             "Shared Traffic"))
-
-adjust_bike_legend<-browsable(
-  tagList(
-    list(
-      tags$head(
-        tags$style(
-          ".leaflet .legend {
-                 line-height: 10px;
-                 font-size: 10px;
-                 }",
-          ".leaflet .legend i{
-                width: 10px;
-                height: 10px;
-                 }"
-        )
-      ),
-      data)))

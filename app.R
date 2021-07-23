@@ -16,26 +16,26 @@ source("stats/ampm_comparison_model.R")
 source("camera_img.R")
 source("stats/undercount_model.R")
 source("readBoundaries.R")
-source("bikevars.R")
+source("bikevars.R") #BIKE_COLOR_LEGEND, BIKE_LABLES & palBike  variables used
+
 
 # Feature toggle
 MULTI_SELECT_TOGGLE = TRUE
-
 
 # Load data
 cams <- read.csv("data/surrey_desc.csv")
 cams_data <- read.csv("data/surrey_data.csv")
 neighbourhood<-readBoundaries('data/surrey_city_boundary.json')
-bike_routes <- st_read("data/bike_routes.json", quiet = TRUE) %>%
+bike_routes <- st_read("data/bikeroutes_in_4326.geojson", quiet = TRUE) %>%
   st_transform(crs = 4326)
 #sort by neighbourhood
 neighbourhood_names <- neighbourhood$NAME %>%
   as.character(.) %>%
   sort()
+
 # Load undercount correction model
 car_detected_vs_counted = read.csv("data/car_detected_vs_counted.csv")
 uc_correction_model = fitModel(car_detected_vs_counted)
-
 
 # Camera Icon asset
 camIcon <- makeIcon(
@@ -47,12 +47,14 @@ camIcon <- makeIcon(
 cam_icon_highlight <- makeAwesomeIcon(icon = 'camera', markerColor = 'red')
 
 # Other Constants
+NEIGHBOURHOODS <- c("CITY CENTRE", "CLOVERDALE", "FLEETWOOD", "GUILDFORD",
+                         "NEWTON", "SOUTH SURREY", "WHALLEY")
+VEHICLE_TYPES_NAME <- c("Car", "Truck", "Bus", "Bicycle", "Motorcycle", "Person")
 VEHICLE_TYPES <- c("car_count", "truck_count", "bus_count", "bicycle_count", "motorcycle_count", "person_count")
 SURREY_LAT <- 49.15
 SURREY_LNG <- -122.8
 ZOOM_MIN = 10
 ZOOM_MAX = 18
-
 
 ########## UI ##########
 
@@ -68,7 +70,7 @@ basemap <- leaflet(data = cams, options = leafletOptions(minZoom = ZOOM_MIN, max
                       "Health and Medicine",
                       "Business and Finance",
                       "Services",
-                      "Bike Route"),
+                      "Bike Routes"),
     options=layersControlOptions(collapsed = TRUE))%>%
   hideGroup(c("Stores",
               "Food and Restaurants",
@@ -76,15 +78,19 @@ basemap <- leaflet(data = cams, options = leafletOptions(minZoom = ZOOM_MIN, max
               "Health and Medicine",
               "Business and Finance",
               "Services",
-              "Bike Route"))%>%
+              "Bike Routes"))%>%
   addMarkers(data=stores, popup = ~as.character(BusinessName),icon= storeIcon,group="Stores",clusterOptions = markerClusterOptions(maxClusterRadius = 30,showCoverageOnHover = FALSE))%>%
   addMarkers(data=food.and.restaurant,popup = ~as.character(BusinessName), icon=restaurantIcon, group= "Food and Restaurants",clusterOptions = markerClusterOptions(maxClusterRadius = 30,showCoverageOnHover = FALSE))%>%
   addMarkers(data=alcohol,popup = ~as.character(BusinessName), icon= liquorIcon, group= "Liquor Stores",clusterOptions = markerClusterOptions(maxClusterRadius = 30,showCoverageOnHover = FALSE))%>%
   addMarkers(data=health_medicine, popup = ~as.character(BusinessName),icon= healthIcon, group= "Health and Medicine",clusterOptions = markerClusterOptions(maxClusterRadius = 30,showCoverageOnHover = FALSE))%>%
   addMarkers(data=finances,popup = ~as.character(BusinessName),icon= bizIcon, group="Business and Finance",clusterOptions = markerClusterOptions(maxClusterRadius = 30,showCoverageOnHover = FALSE))%>%
   addMarkers(data=services,popup = ~as.character(BusinessName),icon= serviceIcon,group= "Services",
-             clusterOptions = markerClusterOptions(showCoverageOnHover = FALSE))
-  
+             clusterOptions = markerClusterOptions(showCoverageOnHover = FALSE))%>%
+  addLegend("bottomleft",
+            colors = BIKE_COLOR_LEGEND,
+            labels= BIKE_LABELS,
+            title= "Bike Lane Type",
+            group="Bike Route")
 
 plotVehicleCountWithTime <- function(df, dateRange, timeRange, vehicleType, weekdayOnly, displayCorrection=FALSE) {
   if (nrow(df) == 0) {
@@ -131,7 +137,6 @@ plotVehicleCountWithTime <- function(df, dateRange, timeRange, vehicleType, week
   return(myplot)
 }
 
-
 ui <- dashboardPage(
   dashboardHeader(title = "Unbiased Mobility"),
   dashboardSidebar(
@@ -145,6 +150,10 @@ ui <- dashboardPage(
         choices=(neighbourhood_names),
         selected= "SURREY"
       ),
+      selectInput(inputId = "camid",
+                  label = "Camera ID",
+                  choices = cams$station_name,
+                  multiple = FALSE),
       sliderInput(
         "dateRange", label = "Choose Date Range:",
         min = as.POSIXct("2020-12-01 00:00:00"),
@@ -159,14 +168,10 @@ ui <- dashboardPage(
         value = c(as.POSIXct("2020-12-01 00:00:00"), as.POSIXct("2020-12-01 23:59:59")),
         timeFormat = "%T", ticks = F, animate = T, timezone = "-0800"
       ),
-      actionButton(inputId = "amHour", label = "AM Hours"),
-      actionButton(inputId = "pmHour", label = "PM Hours"),
-      selectInput(inputId = "camid",
-                  label = "Camera ID",
-                  choices = cams$station_name,
-                  multiple = FALSE),
-      radioButtons("vehicleType", "Vehicle Type:",
-                   VEHICLE_TYPES),
+      actionBttn(inputId = "amHour", label = "AM Hours", color = "primary", style = "fill"),
+      actionBttn(inputId = "pmHour", label = "PM Hours", color = "primary", style = "fill"),
+      radioButtons("vehicleType", "Vehicle Type:", choiceNames = VEHICLE_TYPES_NAME,
+                   choiceValues = VEHICLE_TYPES),
       checkboxInput("displayCorrection", label = "Correct for undercounting (only effective for car type)", value = FALSE)
     )
   ),
@@ -187,7 +192,7 @@ ui <- dashboardPage(
                                   width = "100%", height = "auto"
                                 ),
                                 box(
-                                  title = "AM VS PM Biases",
+                                  title = "AM VS PM Biases (car count ONLY)",
                                   DT::dataTableOutput("ampmPairTable"),
                                   collapsible = T,
                                   width = "100%", height = "auto"
@@ -197,7 +202,7 @@ ui <- dashboardPage(
               absolutePanel(id = "camera_img",
                             draggable = TRUE, top = "auto", left = "auto" , right = "auto", bottom = 20,
                             width = 300, height = "auto",
-                            imageOutput("testImg", height="auto"))
+                            uiOutput("image", height="auto"))
     )
   )
 ))
@@ -210,24 +215,18 @@ server <- function(input, output, session) {
   observeEvent(input$neighbourhood_names,{
     req(input$neighbourhood_names)
     if(input$neighbourhood_names =="SURREY"){
-      data<- neighbourhood %>%
-        dplyr::filter(NAME %in% c("CITY CENTRE", "CLOVERDALE", "FLEETWOOD", "GUILDFORD",
-                                  "NEWTON", "SOUTH SURREY", "WHALLEY"))
-    } else{
       data <- neighbourhood %>%
+        dplyr::filter(NAME %in% NEIGHBOURHOODS)
+    } else {
+      data <- neighbourhood %>% 
         dplyr::filter(NAME == input$neighbourhood_names)}
-
+    
     leafletProxy("basemap", data= data) %>%
       clearShapes() %>%
       addPolygons(color = "#141722", weight = 3, smoothFactor = 0.5,
                   fillOpacity = 0, opacity = 0.2)%>%
       addPolygons(data=bike_routes,weight = 4, color = ~palBike(BIKE_INFRASTRUCTURE_TYPE), opacity=0.3,fill = FALSE,
-                  group="Bike Route")%>%
-      addLegend("bottomleft",
-                colors = BIKE_COLOR_LEGEND,
-                labels= BIKE_LABELS,
-                title= "Bike Lanes",
-                group="Bike Route")%>%
+                  group="Bike Routes")%>%
       setView(lng = ifelse(input$neighbourhood_names == "SURREY", -122.7953,  data$long),
               lat = ifelse(input$neighbourhood_names == "SURREY", 49.10714,  data$lat),
               zoom = ifelse(input$neighbourhood_names == "SURREY", 11, 12))
@@ -236,22 +235,19 @@ server <- function(input, output, session) {
   saved_camId <- reactiveVal(isolate(input$camid))
   update <- reactiveVal(TRUE)
 
-
   # current selected camera
-  current_cam <- reactiveValues(id = NULL, data = NULL, lat = NULL, lng = NULL, selected = TRUE)
+  current_cam <- reactiveValues(id = NULL, data = NULL, lat = NULL, lng = NULL)
   selected_cams <- reactiveValues(ids = c(), data = c())
   
+  # AM and PM's same-intersection/nearest-neighbor camera comparison results
   paired_am_res <- reactiveValues()
   paired_pm_res <- reactiveValues()
   
   # current map center
   map_view <- reactiveValues()
-  
-  # to keep track of previously selected marker
-  prev_selected <- reactiveVal()
+
   # highlight current selected cam marker
   proxy <- leafletProxy('basemap')
-
   
   observeEvent(input$amHour, {
     updateSliderInput(session, "timeRange", value = c(as.POSIXct("2020-12-01 07:00:00"), as.POSIXct("2020-12-01 10:00:00")), timeFormat = "%T")
@@ -259,18 +255,16 @@ server <- function(input, output, session) {
   
   observeEvent(input$pmHour, {
     updateSliderInput(session, "timeRange", value = c(as.POSIXct("2020-12-01 16:00:00"), as.POSIXct("2020-12-01 19:00:00")), timeFormat = "%T")
-
   })
   
   # Update current camera according to selected input
   observeEvent(input$camid, {
+    if (update()) saved_camId(input$camid) else update(TRUE)
     if (is.null(input$camid)) return()
     current_cam$id <- input$camid
-
     if (current_cam$id %notin% selected_cams$ids) {
       selected_cams$ids <- c(current_cam$id, selected_cams$ids)
     }
-
   })
   
   # Update current camera according to marker click
@@ -278,38 +272,20 @@ server <- function(input, output, session) {
     marker <- input$basemap_marker_click
     if (is.null(marker$id)) return()
     current_cam$id <- marker$id
-    isolate({ 
-      updateSelectInput(session, 'camid', selected = marker$id)
-    })
-    
-    # toggle selection state
-    current_cam$selected <- !current_cam$selected
-    if (current_cam$selected) {
-      selected_cams$ids <- selected_cams$ids[selected_cams$ids != current_cam$id]
-    } else {
-      selected_cams$ids <- c(selected_cams$ids, current_cam$id)
-    }
-    
 
-    if (!is.null(prev_selected())) {
-      if (prev_selected()$selected) {
-        # de-selecting previous camera
-        proxy %>%
-          addMarkers(popup=as.character(prev_selected()$id),
-                     layerId = as.character(prev_selected()$id),
-                     lng=prev_selected()$lng,
-                     lat=prev_selected()$lat,
-                     icon = camIcon)
+    if (marker$id %in% selected_cams$ids) {
+      selected_cams$ids <- selected_cams$ids[selected_cams$ids != marker$id]
+      proxy %>%
+        addMarkers(popup=as.character(marker$id),
+                   layerId = as.character(marker$id),
+                   lng=marker$lng,
+                   lat=marker$lat,
+                   icon = camIcon)
+      if (length(selected_cams$ids) > 0) {
+        current_cam$id <- selected_cams$ids[1]
       } else {
-        # re-selecting on the same camera
-        proxy %>%
-          addAwesomeMarkers(popup=as.character(current_cam$id),
-                            layerId = as.character(current_cam$id),
-                            lng=current_cam$lng, 
-                            lat=current_cam$lat,
-                            icon = cam_icon_highlight)
+        current_cam$id <- NULL
       }
-
     } 
     else {
       selected_cams$ids <- c(current_cam$id, selected_cams$ids)
@@ -319,9 +295,10 @@ server <- function(input, output, session) {
                           lng=current_cam$lng,
                           lat=current_cam$lat,
                           icon = cam_icon_highlight)
-
     }
-    prev_selected(current_cam)
+    # Don't trigger camid select input's reactive event
+    update(FALSE)
+    updateSelectInput(session, 'camid', selected = current_cam$id)
   })
   
   # Smooth pan map view based on camera selected
@@ -339,17 +316,17 @@ server <- function(input, output, session) {
             lng = map_view$lng,
             lat = map_view$lat,
             zoom = map_view$zoom)
-    
-    selected_cams$ids <- c(selected_cams$ids, current_cam$id)
-    print(selected_cams$ids)
 
-    proxy %>%
-      addAwesomeMarkers(popup=as.character(current_cam$id),
-                        layerId = as.character(current_cam$id),
-                        lng=current_cam$lng, 
-                        lat=current_cam$lat,
-                        icon = cam_icon_highlight)
-    
+    # print(selected_cams$ids)
+    if (current_cam$id %in% selected_cams$ids) {
+        proxy %>%
+          addAwesomeMarkers(popup=as.character(current_cam$id),
+                            layerId = as.character(current_cam$id),
+                            lng=current_cam$lng,
+                            lat=current_cam$lat,
+                            icon = cam_icon_highlight)
+    }
+    # print(selected_cams$ids)
   })
 
   # Update data to display
@@ -368,12 +345,11 @@ server <- function(input, output, session) {
     output$ampmPairTable <- DT::renderDataTable({
       paired_am_res <- pair_analyze_am(selected_cams, as.POSIXct(format(input$dateRange, "%Y-%m-%d")), input$weekdayOnly)
       paired_pm_res <- pair_analyze_pm(selected_cams, as.POSIXct(format(input$dateRange, "%Y-%m-%d")), input$weekdayOnly)
-      return(DT::datatable(rbind(data.frame(paired_am_res), data.frame(paired_pm_res)), rownames = FALSE))
+      return(DT::datatable(rbind(data.frame(paired_am_res), data.frame(paired_pm_res)), rownames = FALSE, options = list(dom = 't', autoWidth = FALSE, scrollX = TRUE)))
     })
   })
   
   # Camera Image
-
   output$image <- renderUI({
     img_URI = NULL
     if (!is.null(current_cam$id) & length(selected_cams$ids) == 1) {
@@ -383,8 +359,6 @@ server <- function(input, output, session) {
       tags$div(tags$img(src = img_URI, width = 300))
     }
   })
-
 }
 
 shinyApp(ui = ui, server = server)
-
