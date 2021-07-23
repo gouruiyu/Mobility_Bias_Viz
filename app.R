@@ -12,7 +12,7 @@ library(rlang)
 library(DT)
 
 source("biz_data_clean.R")
-source("stats/ampm_data_clean.R")
+source("stats/ampm_comparison_model.R")
 source("camera_img.R")
 source("stats/undercount_model.R")
 
