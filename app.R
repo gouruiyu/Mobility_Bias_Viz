@@ -19,6 +19,30 @@ cams <- read.csv("data/surrey_desc.csv")
 cams_data <- read.csv("data/surrey_data.csv")
 surrey_fsa<-readLines("data/surrey_boundary_with_FSA.geojson") %>% paste(collapse = "\n")
 
+neighbourhood <- st_read("data/surrey_city_boundary.json", quiet = TRUE) %>%
+  st_transform(crs = 4326) %>%
+  select(NAME,geometry)%>%
+  mutate(lat=c(49.19029449763036,
+               49.12504880273621,
+               49.193749825907005,
+               49.15,
+               49.05998794267178,
+               49.16512240696166,
+               49.190888730841664,
+               49.113518390901305))%>%
+  mutate(long= c(-122.84450893861613,
+                 -122.86468748038969,
+                 -122.84749467762953,
+                 -122.8,
+                 -122.79820675637552,
+                 -122.79253629367624,
+                 -122.7996948131293,
+                 -122.75001299344743))
+
+neighbourhood_names <- neighbourhood$NAME %>%
+  as.character(.) %>%
+  sort()
+
 
 # Camera Icon asset
 camIcon <- makeIcon(
@@ -64,8 +88,7 @@ basemap <- leaflet(data = cams, options = leafletOptions(minZoom = ZOOM_MIN, max
   addMarkers(data=health_medicine, popup = ~as.character(BusinessName),icon= healthIcon, group= "Health and Medicine",clusterOptions = markerClusterOptions(maxClusterRadius = 30,showCoverageOnHover = FALSE))%>%
   addMarkers(data=finances,popup = ~as.character(BusinessName),icon= bizIcon, group="Business and Finance",clusterOptions = markerClusterOptions(maxClusterRadius = 30,showCoverageOnHover = FALSE))%>%
   addMarkers(data=services,popup = ~as.character(BusinessName),icon= serviceIcon,group= "Services",
-             clusterOptions = markerClusterOptions(showCoverageOnHover = FALSE))%>%
-  addGeoJSON(surrey_boundaries, weight = 3, color = "#000000", fill = FALSE)
+             clusterOptions = markerClusterOptions(showCoverageOnHover = FALSE))
 
 plotVehicleCountWithTime <- function(df, dateRange, timeRange, vehicleType) {
   if (nrow(df) == 0) {
@@ -103,6 +126,13 @@ ui <- dashboardPage(
       menuItem("Cam Map", tabName = "basemap", icon = icon("camera")),
       menuItem("User Inputs", tabName = "userInputs", icon = icon("user")),
       hidden(
+        selectInput(
+          "neighbourhood_names",
+          label = "Select a Neighbourhood:",
+          choices=(neighbourhood_names),
+          selected= "SURREY"
+          
+        ),
         sliderInput(
           "dateRange", label = "Choose Date Range:",
           min = as.POSIXct("2020-12-01 00:00:00"),
@@ -151,6 +181,28 @@ ui <- dashboardPage(
 server <- function(input, output, session) {
   output$basemap <- renderLeaflet(basemap)
   
+  #surrey boundaries
+  observeEvent(input$neighbourhood_names,{
+    req(input$neighbourhood_names)
+    if(input$neighbourhood_names =="SURREY"){
+      data<- neighbourhood %>%
+        dplyr::filter(NAME %in% c("CITY CENTRE", "CLOVERDALE", "FLEETWOOD", "GUILDFORD",
+                                  "NEWTON", "SOUTH SURREY", "WHALLEY"))
+    } else{
+      data <- neighbourhood %>% 
+        dplyr::filter(NAME == input$neighbourhood_names)}
+    
+    leafletProxy("basemap", data= data) %>%
+      clearShapes() %>%
+      addPolygons(color = "#141722", weight = 3, smoothFactor = 0.5,
+                  fillOpacity = 0, opacity = 1)%>%
+      flyTo(lng = ifelse(input$neighbourhood_names == "SURREY", -122.7953,  data$long),
+              lat = ifelse(input$neighbourhood_names == "SURREY", 49.10714,  data$lat),
+              zoom = ifelse(input$neighbourhood_names == "SURREY", 11, 12))
+    
+    
+  })
+  
   saved_camId <- reactiveVal(isolate(input$camid))
   update <- reactiveVal(TRUE)
 
@@ -167,11 +219,13 @@ server <- function(input, output, session) {
   # dynamically show/hide userInputs in the sidebarMenu
   observeEvent(input$sidemenu, {
     if (input$sidemenu == "userInputs") {
+      shinyjs::show("neighbourhood_names")
       shinyjs::show("dateRange")
       shinyjs::show("timeRange")
       shinyjs::show("camid")
       shinyjs::show("vehicleType")
     } else {
+      shinyjs::hide("neighbourhood_names")
       shinyjs::hide("dateRange")
       shinyjs::hide("timeRange")
       shinyjs::hide("camid")
