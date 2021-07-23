@@ -130,8 +130,8 @@ ui <- dashboardPage(
         selectInput(
           "neighbourhood_names",
           label = "Select a Neighbourhood:",
-          choices= neighbourhood_names,
-          selected= "SURREY"
+          choices = neighbourhood_names,
+          selected = "SURREY"
           
         ),
         sliderInput(
