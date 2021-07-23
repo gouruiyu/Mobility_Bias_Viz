@@ -1,2 +1,4 @@
 api.R
-
+  contains information:
+    api to fetch img with filename
+    api to fetch realtime camera img with station name
