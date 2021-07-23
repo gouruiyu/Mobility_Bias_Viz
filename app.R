@@ -15,6 +15,7 @@ source("biz_data_clean.R")
 source("stats/ampm_comparison_model.R")
 source("camera_img.R")
 source("stats/undercount_model.R")
+source("readBoundaries.R")
 
 # Feature toggle
 MULTI_SELECT_TOGGLE = TRUE
@@ -22,7 +23,11 @@ MULTI_SELECT_TOGGLE = TRUE
 # Load data
 cams <- read.csv("data/surrey_desc.csv")
 cams_data <- read.csv("data/surrey_data.csv")
-
+neighbourhood<-readBoundaries('data/surrey_city_boundary.json')
+#sort by neighbourhood
+neighbourhood_names <- neighbourhood$NAME %>%
+  as.character(.) %>%
+  sort()
 # Load undercount correction model
 car_detected_vs_counted = read.csv("data/car_detected_vs_counted.csv")
 uc_correction_model = fitModel(car_detected_vs_counted)
@@ -124,6 +129,12 @@ ui <- dashboardPage(
     sidebarMenu( id = "sidemenu",
       menuItem("Cam Map", tabName = "basemap", icon = icon("camera")),
       menuItem("User Inputs", tabName = "userInputs", icon = icon("user")),
+      selectInput(
+        "neighbourhood_names",
+        label = "Select a Neighbourhood:",
+        choices=(neighbourhood_names),
+        selected= "SURREY"
+      ),
       sliderInput(
         "dateRange", label = "Choose Date Range:",
         min = as.POSIXct("2020-12-01 00:00:00"),
@@ -185,6 +196,25 @@ ui <- dashboardPage(
 
 server <- function(input, output, session) {
   output$basemap <- renderLeaflet(basemap)
+  #select boundaries
+  observeEvent(input$neighbourhood_names,{
+    req(input$neighbourhood_names)
+    if(input$neighbourhood_names =="SURREY"){
+      data<- neighbourhood %>%
+        dplyr::filter(NAME %in% c("CITY CENTRE", "CLOVERDALE", "FLEETWOOD", "GUILDFORD",
+                                  "NEWTON", "SOUTH SURREY", "WHALLEY"))
+    } else{
+      data <- neighbourhood %>% 
+        dplyr::filter(NAME == input$neighbourhood_names)}
+    
+    leafletProxy("basemap", data= data) %>%
+      clearShapes() %>%
+      addPolygons(color = "#141722", weight = 3, smoothFactor = 0.5,
+                  fillOpacity = 0, opacity = 1)%>%
+      setView(lng = ifelse(input$neighbourhood_names == "SURREY", -122.7953,  data$long),
+              lat = ifelse(input$neighbourhood_names == "SURREY", 49.10714,  data$lat),
+              zoom = ifelse(input$neighbourhood_names == "SURREY", 11, 12))
+  })
   
   saved_camId <- reactiveVal(isolate(input$camid))
   update <- reactiveVal(TRUE)
