@@ -2,7 +2,7 @@ input[type="number"] {
   max-width: 80%;
 }
 
-div.outer {
+.outer {
   position: fixed;
   top: 41px;
   left: 0;
@@ -10,6 +10,17 @@ div.outer {
   bottom: 0;
   overflow: hidden;
   padding: 0;
+}
+
+#amHour, #pmHour {
+  display: inline-block;
+  padding:4px;
+  font-size:80%
+}
+
+.panelTitle {
+  display: flex;
+  justify-content: space-between;
 }
 
 /* Customize fonts */
@@ -22,7 +33,6 @@ h1, h2, h3, h4 { font-weight: 400; }
 #controls {
   /* Appearance */
   background-color: white;
-  padding: 0 20px 20px 20px;
   cursor: move;
   /* Fade out while not hovering */
   opacity: 0.80;

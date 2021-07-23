@@ -1,5 +1,6 @@
 library(shiny)
 library(shinydashboard)
+library(shinyWidgets)
 library(shinyjs)
 library(leaflet)
 library(sf)
@@ -8,8 +9,10 @@ library(dplyr)
 library(lubridate)
 library(hms)
 library(rlang)
+library(DT)
 
 source("biz_data_clean.R")
+source("stats/ampm_comparison_model.R")
 source("camera_img.R")
 source("readBoundaries.R")
 source("stats/undercount_model.R")
@@ -74,7 +77,7 @@ basemap <- leaflet(data = cams, options = leafletOptions(minZoom = ZOOM_MIN, max
   addMarkers(data=services,popup = ~as.character(BusinessName),icon= serviceIcon,group= "Services",
              clusterOptions = markerClusterOptions(showCoverageOnHover = FALSE))
 
-plotVehicleCountWithTime <- function(df, dateRange, timeRange, vehicleType, displayCorrection=FALSE) {
+plotVehicleCountWithTime <- function(df, dateRange, timeRange, vehicleType, weekdayOnly, displayCorrection=FALSE) {
   if (nrow(df) == 0) {
     return(ggplot() + # Draw ggplot2 plot with text only
              annotate("text",
@@ -96,8 +99,11 @@ plotVehicleCountWithTime <- function(df, dateRange, timeRange, vehicleType, disp
   df <- df %>% 
     filter(date %within% interval(dateRange[1], dateRange[2])) %>%
     filter(as_hms(time) >= hourRange[1] & as_hms(time) <= hourRange[2])
-
-  myplot <- ggplot(data=df, aes_string(y=vehicleType, x="time", color="station")) + 
+  # Filter on weekdays only
+  if (weekdayOnly == TRUE) df <- df[which(wday(df$date) %notin% c(6, 7)),]
+  myplot <- ggplot(data=df, aes_string(y=vehicleType, x="time", color="station")) +
+    geom_point() +
+    geom_smooth(method = 'loess', formula = 'y~x') +
     scale_x_datetime(date_breaks = "12 hours", date_labels = "%Y-%m-%d %H:%M", limits = as.POSIXct(paste(dateRange, hourRange), format="%Y-%m-%d %H:%M")) +
     xlab("Time(hour)") +
     ylab(vehicleType) +
@@ -123,6 +129,7 @@ ui <- dashboardPage(
     sidebarMenu( id = "sidemenu",
       menuItem("Cam Map", tabName = "basemap", icon = icon("camera")),
       menuItem("User Inputs", tabName = "userInputs", icon = icon("user")),
+
       hidden(
         selectInput(
           "neighbourhood_names",
@@ -152,6 +159,31 @@ ui <- dashboardPage(
                      VEHICLE_TYPES),
         checkboxInput("displayCorrection", label = "Correct for undercounting (only effective for car type)", value = FALSE)
       )
+
+      sliderInput(
+        "dateRange", label = "Choose Date Range:",
+        min = as.POSIXct("2020-12-01 00:00:00"),
+        max = as.POSIXct("2020-12-31 23:59:59"),
+        value = c(as.POSIXct("2020-12-01 00:00:00"),as.POSIXct("2020-12-07 23:59:59")),
+        timeFormat = "%F", ticks = F, animate = T
+      ),
+      sliderInput(
+        "timeRange", label = "Choose Time Range:",
+        min = as.POSIXct("2020-12-01 00:00:00"),
+        max = as.POSIXct("2020-12-01 23:59:59"),
+        value = c(as.POSIXct("2020-12-01 00:00:00"), as.POSIXct("2020-12-01 23:59:59")),
+        timeFormat = "%T", ticks = F, animate = T, timezone = "-0800"
+      ),
+      actionButton(inputId = "amHour", label = "AM Hours"),
+      actionButton(inputId = "pmHour", label = "PM Hours"),
+      selectInput(inputId = "camid",
+                  label = "Camera ID",
+                  choices = cams$station_name,
+                  multiple = FALSE),
+      radioButtons("vehicleType", "Vehicle Type:",
+                   VEHICLE_TYPES),
+      checkboxInput("displayCorrection", label = "Correct for undercounting (only effective for car type)", value = FALSE)
+
     )
   ),
   dashboardBody(
@@ -163,8 +195,21 @@ ui <- dashboardPage(
                   absolutePanel(id = "controls", class = "panel panel-default", fixed = TRUE,
                                 draggable = TRUE, top = 60, left = "auto", right = 20, bottom = "auto",
                                 width = 500, height = "auto",
-                                h3("Traffic explorer"),
-                                plotOutput("linePlotVehicleCounts", height = "200"))),
+                                box(
+                                  title = "Traffic Explorer",
+                                  materialSwitch("weekdayOnly", label = "Weekdays Only", status = "primary", value = FALSE),
+                                  plotOutput("linePlotVehicleCounts", height = "200"),
+                                  collapsible = T,
+                                  width = "100%", height = "auto"
+                                ),
+                                box(
+                                  title = "AM VS PM Biases",
+                                  DT::dataTableOutput("ampmPairTable"),
+                                  collapsible = T,
+                                  width = "100%", height = "auto"
+                                )
+                                )
+                  ),
               absolutePanel(id = "camera_img",
                             draggable = TRUE, top = "auto", left = "auto" , right = "auto", bottom = 20,
                             width = 300, height = "auto",
@@ -205,11 +250,15 @@ server <- function(input, output, session) {
   current_cam <- reactiveValues(id = NULL, data = NULL, lat = NULL, lng = NULL)
   selected_cams <- reactiveValues(ids = c(), data = c())
   
+  paired_am_res <- reactiveValues()
+  paired_pm_res <- reactiveValues()
+  
   # current map center
   map_view <- reactiveValues()
 
   # highlight current selected cam marker
   proxy <- leafletProxy('basemap')
+
 
   # dynamically show/hide userInputs in the sidebarMenu
   observeEvent(input$sidemenu, {
@@ -228,6 +277,15 @@ server <- function(input, output, session) {
       shinyjs::hide("vehicleType")
       shinyjs::hide("displayCorrection")
     }
+
+  
+  observeEvent(input$amHour, {
+    updateSliderInput(session, "timeRange", value = c(as.POSIXct("2020-12-01 07:00:00"), as.POSIXct("2020-12-01 10:00:00")), timeFormat = "%T")
+  })
+  
+  observeEvent(input$pmHour, {
+    updateSliderInput(session, "timeRange", value = c(as.POSIXct("2020-12-01 16:00:00"), as.POSIXct("2020-12-01 19:00:00")), timeFormat = "%T")
+
   })
   
   # Update current camera according to selected input
@@ -312,7 +370,13 @@ server <- function(input, output, session) {
                                as.POSIXct(format(input$dateRange, "%Y-%m-%d")),
                                input$timeRange,
                                input$vehicleType,
+                               input$weekdayOnly,
                                input$displayCorrection)
+    })
+    output$ampmPairTable <- DT::renderDataTable({
+      paired_am_res <- pair_analyze_am(selected_cams, as.POSIXct(format(input$dateRange, "%Y-%m-%d")), input$weekdayOnly)
+      paired_pm_res <- pair_analyze_pm(selected_cams, as.POSIXct(format(input$dateRange, "%Y-%m-%d")), input$weekdayOnly)
+      return(DT::datatable(rbind(data.frame(paired_am_res), data.frame(paired_pm_res)), rownames = FALSE))
     })
   })
   
