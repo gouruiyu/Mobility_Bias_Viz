@@ -10,34 +10,15 @@ library(hms)
 
 source("biz_data_clean.R")
 source("camera_img.R")
-
+source("readBoundaries.R")
 # Feature toggle
 MULTI_SELECT_TOGGLE = TRUE
 
 # Load data
 cams <- read.csv("data/surrey_desc.csv")
 cams_data <- read.csv("data/surrey_data.csv")
-surrey_fsa<-readLines("data/surrey_boundary_with_FSA.geojson") %>% paste(collapse = "\n")
+neighbourhood <- readBoundaries("data/surrey_city_boundary.json")
 
-neighbourhood <- st_read("data/surrey_city_boundary.json", quiet = TRUE) %>%
-  st_transform(crs = 4326) %>%
-  select(NAME,geometry)%>%
-  mutate(lat=c(49.19029449763036,
-               49.12504880273621,
-               49.193749825907005,
-               49.15,
-               49.05998794267178,
-               49.16512240696166,
-               49.190888730841664,
-               49.113518390901305))%>%
-  mutate(long= c(-122.84450893861613,
-                 -122.86468748038969,
-                 -122.84749467762953,
-                 -122.8,
-                 -122.79820675637552,
-                 -122.79253629367624,
-                 -122.7996948131293,
-                 -122.75001299344743))
 
 neighbourhood_names <- neighbourhood$NAME %>%
   as.character(.) %>%
@@ -129,7 +110,7 @@ ui <- dashboardPage(
         selectInput(
           "neighbourhood_names",
           label = "Select a Neighbourhood:",
-          choices=(neighbourhood_names),
+          choices= neighbourhood_names,
           selected= "SURREY"
           
         ),

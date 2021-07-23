@@ -1,10 +1,4 @@
-library(sf)
-library(ggplot2)
-library(dplyr)
-library(lubridate)
-library(tidyverse)
-
-read.surreyBoundaries<-function(path){
+readBoundaries<-function(path){
   df <- st_read(path, quiet = TRUE) %>%
     st_transform(crs = 4326) %>%
     select(NAME,geometry)%>%
