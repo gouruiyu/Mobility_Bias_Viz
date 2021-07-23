@@ -1,5 +1,6 @@
 library(shiny)
 library(shinydashboard)
+library(shinyWidgets)
 library(shinyjs)
 library(leaflet)
 library(sf)
@@ -7,14 +8,31 @@ library(ggplot2)
 library(dplyr)
 library(lubridate)
 library(hms)
+library(rlang)
+library(DT)
 
 source("biz_data_clean.R")
+source("stats/ampm_comparison_model.R")
+source("camera_img.R")
+source("stats/undercount_model.R")
+source("readBoundaries.R")
+
+# Feature toggle
+MULTI_SELECT_TOGGLE = TRUE
+
 
 # Load data
 cams <- read.csv("data/surrey_desc.csv")
 cams_data <- read.csv("data/surrey_data.csv")
-bike_routes<-st_read("data/bikeroutes_in_4326.geojson", quiet = TRUE) %>%
-  st_transform(crs = 4326)
+neighbourhood<-readBoundaries('data/surrey_city_boundary.json')
+#sort by neighbourhood
+neighbourhood_names <- neighbourhood$NAME %>%
+  as.character(.) %>%
+  sort()
+# Load undercount correction model
+car_detected_vs_counted = read.csv("data/car_detected_vs_counted.csv")
+uc_correction_model = fitModel(car_detected_vs_counted)
+
 
 # Camera Icon asset
 camIcon <- makeIcon(
@@ -26,7 +44,6 @@ camIcon <- makeIcon(
 cam_icon_highlight <- makeAwesomeIcon(icon = 'camera', markerColor = 'red')
 
 # Other Constants
-
 VEHICLE_TYPES <- c("car_count", "truck_count", "bus_count", "bicycle_count", "motorcycle_count", "person_count")
 SURREY_LAT <- 49.15
 SURREY_LNG <- -122.8
@@ -85,7 +102,7 @@ basemap <- leaflet(data = cams, options = leafletOptions(minZoom = ZOOM_MIN, max
 
   
 
-plotVehicleCountWithTime <- function(df, dateRange, timeRange, vehicleType) {
+plotVehicleCountWithTime <- function(df, dateRange, timeRange, vehicleType, weekdayOnly, displayCorrection=FALSE) {
   if (nrow(df) == 0) {
     return(ggplot() + # Draw ggplot2 plot with text only
              annotate("text",
@@ -96,6 +113,10 @@ plotVehicleCountWithTime <- function(df, dateRange, timeRange, vehicleType) {
                       label = "The data for this camera is not available.") + 
              theme_void())
   }
+  
+  # Toggle off display correction if vehicle type if not car for now
+  displayCorrection = (displayCorrection) & (vehicleType == 'car_count')
+  
   hourRange <- as_hms(with_tz(timeRange, "America/Vancouver"))
   df$time <- as.POSIXct(df$time)
   df$date <- as.POSIXct(format(df$time, "%Y-%m-%d"))
@@ -103,6 +124,8 @@ plotVehicleCountWithTime <- function(df, dateRange, timeRange, vehicleType) {
   df <- df %>% 
     filter(date %within% interval(dateRange[1], dateRange[2])) %>%
     filter(as_hms(time) >= hourRange[1] & as_hms(time) <= hourRange[2])
+  # Filter on weekdays only
+  if (weekdayOnly == TRUE) df <- df[which(wday(df$date) %notin% c(6, 7)),]
   myplot <- ggplot(data=df, aes_string(y=vehicleType, x="time", color="station")) +
     geom_point() +
     geom_smooth(method = 'loess', formula = 'y~x') +
@@ -110,6 +133,17 @@ plotVehicleCountWithTime <- function(df, dateRange, timeRange, vehicleType) {
     xlab("Time(hour)") +
     ylab(vehicleType) +
     theme(axis.text.x = element_text(angle = 60, hjust = 1), legend.position="bottom")
+  
+  if (!displayCorrection) {
+     myplot <- myplot +
+      geom_point()
+  } else {
+    # Bias corrected line
+    pred <- predict(uc_correction_model, newdata=data.frame(detected = df[[vehicleType]]))
+    myplot <- myplot + 
+      geom_point(data=df, aes(y=pred))
+  }
+  myplot <- myplot + geom_smooth(method = 'loess', formula = 'y~x')
   return(myplot)
 }
 
@@ -121,29 +155,35 @@ ui <- dashboardPage(
     sidebarMenu( id = "sidemenu",
       menuItem("Cam Map", tabName = "basemap", icon = icon("camera")),
       menuItem("User Inputs", tabName = "userInputs", icon = icon("user")),
-      hidden(
-        sliderInput(
-          "dateRange", label = "Choose Date Range:",
-          min = as.POSIXct("2020-12-01 00:00:00"),
-          max = as.POSIXct("2020-12-31 23:59:59"),
-          value = c(as.POSIXct("2020-12-01 00:00:00"),as.POSIXct("2020-12-07 23:59:59")),
-          timeFormat = "%F", ticks = F, animate = T
-        ),
-        sliderInput(
-          "timeRange", label = "Choose Time Range:",
-          min = as.POSIXct("2020-12-01 00:00:00"),
-          max = as.POSIXct("2020-12-01 23:59:59"),
-          value = c(as.POSIXct("2020-12-01 00:00:00"), as.POSIXct("2020-12-01 23:59:59")),
-          timeFormat = "%T", ticks = F, animate = T, timezone = "-0800"
-        ),
-        selectInput(inputId = "camid",
-                    label = "Camera ID",
-                    choices = cams$station_name,
-                    multiple = FALSE),
-        radioButtons("vehicleType", "Vehicle Type:",
-                     VEHICLE_TYPES)
-        # checkboxInput("realtimeImg",label = "Display current traffic image", value = TRUE)
-      )
+      selectInput(
+        "neighbourhood_names",
+        label = "Select a Neighbourhood:",
+        choices=(neighbourhood_names),
+        selected= "SURREY"
+      ),
+      sliderInput(
+        "dateRange", label = "Choose Date Range:",
+        min = as.POSIXct("2020-12-01 00:00:00"),
+        max = as.POSIXct("2020-12-31 23:59:59"),
+        value = c(as.POSIXct("2020-12-01 00:00:00"),as.POSIXct("2020-12-07 23:59:59")),
+        timeFormat = "%F", ticks = F, animate = T
+      ),
+      sliderInput(
+        "timeRange", label = "Choose Time Range:",
+        min = as.POSIXct("2020-12-01 00:00:00"),
+        max = as.POSIXct("2020-12-01 23:59:59"),
+        value = c(as.POSIXct("2020-12-01 00:00:00"), as.POSIXct("2020-12-01 23:59:59")),
+        timeFormat = "%T", ticks = F, animate = T, timezone = "-0800"
+      ),
+      actionButton(inputId = "amHour", label = "AM Hours"),
+      actionButton(inputId = "pmHour", label = "PM Hours"),
+      selectInput(inputId = "camid",
+                  label = "Camera ID",
+                  choices = cams$station_name,
+                  multiple = FALSE),
+      radioButtons("vehicleType", "Vehicle Type:",
+                   VEHICLE_TYPES),
+      checkboxInput("displayCorrection", label = "Correct for undercounting (only effective for car type)", value = FALSE)
     )
   ),
   dashboardBody(
@@ -155,8 +195,21 @@ ui <- dashboardPage(
                   absolutePanel(id = "controls", class = "panel panel-default", fixed = TRUE,
                                 draggable = TRUE, top = 60, left = "auto", right = 20, bottom = "auto",
                                 width = 500, height = "auto",
-                                h3("Traffic explorer"),
-                                plotOutput("linePlotVehicleCounts", height = "200"))),
+                                box(
+                                  title = "Traffic Explorer",
+                                  materialSwitch("weekdayOnly", label = "Weekdays Only", status = "primary", value = FALSE),
+                                  plotOutput("linePlotVehicleCounts", height = "200"),
+                                  collapsible = T,
+                                  width = "100%", height = "auto"
+                                ),
+                                box(
+                                  title = "AM VS PM Biases",
+                                  DT::dataTableOutput("ampmPairTable"),
+                                  collapsible = T,
+                                  width = "100%", height = "auto"
+                                )
+                                )
+                  ),
               absolutePanel(id = "camera_img",
                             draggable = TRUE, top = "auto", left = "auto" , right = "auto", bottom = 20,
                             width = 300, height = "auto",
@@ -168,13 +221,37 @@ ui <- dashboardPage(
 ########## Server ##########
 
 server <- function(input, output, session) {
-  output$basemap <- renderLeaflet({
-    basemap
-    })
+  output$basemap <- renderLeaflet(basemap)
+  #select boundaries
+  observeEvent(input$neighbourhood_names,{
+    req(input$neighbourhood_names)
+    if(input$neighbourhood_names =="SURREY"){
+      data<- neighbourhood %>%
+        dplyr::filter(NAME %in% c("CITY CENTRE", "CLOVERDALE", "FLEETWOOD", "GUILDFORD",
+                                  "NEWTON", "SOUTH SURREY", "WHALLEY"))
+    } else{
+      data <- neighbourhood %>% 
+        dplyr::filter(NAME == input$neighbourhood_names)}
+    
+    leafletProxy("basemap", data= data) %>%
+      clearShapes() %>%
+      addPolygons(color = "#141722", weight = 3, smoothFactor = 0.5,
+                  fillOpacity = 0, opacity = 0.2)%>%
+      setView(lng = ifelse(input$neighbourhood_names == "SURREY", -122.7953,  data$long),
+              lat = ifelse(input$neighbourhood_names == "SURREY", 49.10714,  data$lat),
+              zoom = ifelse(input$neighbourhood_names == "SURREY", 11, 12))
+  })
+  
+  saved_camId <- reactiveVal(isolate(input$camid))
+  update <- reactiveVal(TRUE)
+
 
   # current selected camera
   current_cam <- reactiveValues(id = NULL, data = NULL, lat = NULL, lng = NULL, selected = TRUE)
   selected_cams <- reactiveValues(ids = c(), data = c())
+  
+  paired_am_res <- reactiveValues()
+  paired_pm_res <- reactiveValues()
   
   # current map center
   map_view <- reactiveValues()
@@ -184,23 +261,14 @@ server <- function(input, output, session) {
   # highlight current selected cam marker
   proxy <- leafletProxy('basemap')
 
-  # dynamically show/hide userInputs in the sidebarMenu
-  observeEvent(input$sidemenu, {
-    if (input$sidemenu == "userInputs") {
-      shinyjs::show("dateRange")
-      shinyjs::show("timeRange")
-      shinyjs::show("camid")
-      shinyjs::show("vehicleType")
+  
+  observeEvent(input$amHour, {
+    updateSliderInput(session, "timeRange", value = c(as.POSIXct("2020-12-01 07:00:00"), as.POSIXct("2020-12-01 10:00:00")), timeFormat = "%T")
+  })
+  
+  observeEvent(input$pmHour, {
+    updateSliderInput(session, "timeRange", value = c(as.POSIXct("2020-12-01 16:00:00"), as.POSIXct("2020-12-01 19:00:00")), timeFormat = "%T")
 
-
-
-    } else {
-      shinyjs::hide("dateRange")
-      shinyjs::hide("timeRange")
-      shinyjs::hide("camid")
-      shinyjs::hide("vehicleType")
-
-    }
   })
   
   # Update current camera according to selected input
@@ -293,23 +361,28 @@ server <- function(input, output, session) {
     
   })
 
-  observeEvent(selected_cams$ids, {
-    selected_cams$data <- cams_data %>% filter(station %in% selected_cams$ids)
+  # Update data to display
+  observeEvent(selected_cams$ids, {selected_cams$data <- cams_data %>% filter(station %in% selected_cams$ids)})
+  
+  # Update line plot             
+  observe({
     output$linePlotVehicleCounts <- renderPlot({
       plotVehicleCountWithTime(selected_cams$data, 
                                as.POSIXct(format(input$dateRange, "%Y-%m-%d")),
                                input$timeRange,
-                               input$vehicleType)
+                               input$vehicleType,
+                               input$weekdayOnly,
+                               input$displayCorrection)
+    })
+    output$ampmPairTable <- DT::renderDataTable({
+      paired_am_res <- pair_analyze_am(selected_cams, as.POSIXct(format(input$dateRange, "%Y-%m-%d")), input$weekdayOnly)
+      paired_pm_res <- pair_analyze_pm(selected_cams, as.POSIXct(format(input$dateRange, "%Y-%m-%d")), input$weekdayOnly)
+      return(DT::datatable(rbind(data.frame(paired_am_res), data.frame(paired_pm_res)), rownames = FALSE))
     })
   })
   
   # Camera Image
 
-  # output$testImg <- renderImage({
-  #   filename <- normalizePath(file.path('data/example_cam.jpg'))
-  #   # Return a list containing the filename and alt text
-  #   list(src = filename, alt = "Camera Image", width = 300)
-  # }, deleteFile = FALSE)
   output$image <- renderUI({
     img_URI = NULL
     if (!is.null(current_cam$id) & length(selected_cams$ids) == 1) {

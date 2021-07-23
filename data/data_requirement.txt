@@ -1,4 +1,14 @@
 all_businessess.csv
+
 example_cam.jpg
+
 surrey_data.csv
+
 surrey_desc.csv
+
+car_detected_vs_counted.csv:
+    Columns: 4
+  $ datetime <chr> "2021-05-02 17:01:11-07:00", "2021-05-02 17:03:10-07:00", "2021-05-02 17:05:10-07…
+  $ detected <int> 0, 8, 5, 2, 5, 11, 9, 7, 5, 4, 8, 9, 7, 2, 11, 1, 7, 6, 5, 8, 7, 0, 6, 4, 3, 10, …
+  $ counted  <int> 2, 14, 18, 3, 5, 11, 10, 10, 5, 5, 11, 13, 9, 2, 16, 2, 10, 6, 6, 9, 7, 2, 7, 5, …
+  $ Q.F      <chr> "F", "Q", "Q", "F", "F", "Q", "Q", "Q", "F", "F", "Q", "Q", "F", "F", "F", "F", "…
