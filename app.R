@@ -172,9 +172,8 @@ ui <- dashboardPage(
       actionBttn(inputId = "amHour", label = "AM Hours", color = "primary", style = "fill"),
       actionBttn(inputId = "pmHour", label = "PM Hours", color = "primary", style = "fill"),
       radioButtons("vehicleType", "Vehicle Type:", choiceNames = VEHICLE_TYPES_NAME,
-                   choiceValues = VEHICLE_TYPES),
-      checkboxInput("displayCorrection", label = "Correct for undercounting (only effective for car type)", value = FALSE)
-    )
+                   choiceValues = VEHICLE_TYPES)
+     )
   ),
   dashboardBody(
     tabItems(
@@ -187,7 +186,8 @@ ui <- dashboardPage(
                                 width = 500, height = "auto",
                                 box(
                                   title = "Traffic Explorer",
-                                  materialSwitch("weekdayOnly", label = "Weekdays Only", status = "primary", value = FALSE),
+                                  materialSwitch("weekdayOnly", label = "Weekdays Only", status = "primary", inline = TRUE, value = FALSE),
+                                  materialSwitch("displayCorrection", label = "Correct for undercount", status = "primary", inline = TRUE, value = FALSE),
                                   plotOutput("linePlotVehicleCounts", height = "200"),
                                   collapsible = T,
                                   width = "100%", height = "auto"
