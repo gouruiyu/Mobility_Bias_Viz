@@ -86,11 +86,11 @@ basemap <- leaflet(data = cams, options = leafletOptions(minZoom = ZOOM_MIN, max
   addMarkers(data=finances,popup = ~as.character(BusinessName),icon= bizIcon, group="Business and Finance",clusterOptions = markerClusterOptions(maxClusterRadius = 30,showCoverageOnHover = FALSE))%>%
   addMarkers(data=services,popup = ~as.character(BusinessName),icon= serviceIcon,group= "Services",
              clusterOptions = markerClusterOptions(showCoverageOnHover = FALSE))%>%
-  addLegend("bottomleft",
+  addLegend("topleft",
             colors = BIKE_COLOR_LEGEND,
             labels= BIKE_LABELS,
             title= "Bike Lane Type",
-            group="Bike Route")
+            group="Bike Routes")
 
 plotVehicleCountWithTime <- function(df, dateRange, timeRange, vehicleType, weekdayOnly, displayCorrection=FALSE) {
   if (nrow(df) == 0) {
