@@ -16,6 +16,8 @@ source("stats/ampm_comparison_model.R")
 source("camera_img.R")
 source("stats/undercount_model.R")
 source("readBoundaries.R")
+source("bikevars.R") #BIKE_COLOR_LEGEND, BIKE_LABLES & palBike  variables used
+
 
 # Feature toggle
 MULTI_SELECT_TOGGLE = TRUE
@@ -24,7 +26,8 @@ MULTI_SELECT_TOGGLE = TRUE
 cams <- read.csv("data/surrey_desc.csv")
 cams_data <- read.csv("data/surrey_data.csv")
 neighbourhood<-readBoundaries('data/surrey_city_boundary.json')
-
+bike_routes <- st_read("data/bikeroutes_in_4326.geojson", quiet = TRUE) %>%
+  st_transform(crs = 4326)
 #sort by neighbourhood
 neighbourhood_names <- neighbourhood$NAME %>%
   as.character(.) %>%
@@ -66,21 +69,28 @@ basemap <- leaflet(data = cams, options = leafletOptions(minZoom = ZOOM_MIN, max
                       "Liquor Stores",
                       "Health and Medicine",
                       "Business and Finance",
-                      "Services"),
+                      "Services",
+                      "Bike Routes"),
     options=layersControlOptions(collapsed = TRUE))%>%
   hideGroup(c("Stores",
               "Food and Restaurants",
               "Liquor Stores",
               "Health and Medicine",
               "Business and Finance",
-              "Services"))%>%
+              "Services",
+              "Bike Routes"))%>%
   addMarkers(data=stores, popup = ~as.character(BusinessName),icon= storeIcon,group="Stores",clusterOptions = markerClusterOptions(maxClusterRadius = 30,showCoverageOnHover = FALSE))%>%
   addMarkers(data=food.and.restaurant,popup = ~as.character(BusinessName), icon=restaurantIcon, group= "Food and Restaurants",clusterOptions = markerClusterOptions(maxClusterRadius = 30,showCoverageOnHover = FALSE))%>%
   addMarkers(data=alcohol,popup = ~as.character(BusinessName), icon= liquorIcon, group= "Liquor Stores",clusterOptions = markerClusterOptions(maxClusterRadius = 30,showCoverageOnHover = FALSE))%>%
   addMarkers(data=health_medicine, popup = ~as.character(BusinessName),icon= healthIcon, group= "Health and Medicine",clusterOptions = markerClusterOptions(maxClusterRadius = 30,showCoverageOnHover = FALSE))%>%
   addMarkers(data=finances,popup = ~as.character(BusinessName),icon= bizIcon, group="Business and Finance",clusterOptions = markerClusterOptions(maxClusterRadius = 30,showCoverageOnHover = FALSE))%>%
   addMarkers(data=services,popup = ~as.character(BusinessName),icon= serviceIcon,group= "Services",
-             clusterOptions = markerClusterOptions(showCoverageOnHover = FALSE))
+             clusterOptions = markerClusterOptions(showCoverageOnHover = FALSE))%>%
+  addLegend("topleft",
+            colors = BIKE_COLOR_LEGEND,
+            labels= BIKE_LABELS,
+            title= "Bike Lane Type",
+            group="Bike Routes")
 
 plotVehicleCountWithTime <- function(df, dateRange, timeRange, vehicleType, weekdayOnly, displayCorrection=FALSE) {
   if (nrow(df) == 0) {
@@ -214,7 +224,9 @@ server <- function(input, output, session) {
     leafletProxy("basemap", data= data) %>%
       clearShapes() %>%
       addPolygons(color = "#141722", weight = 3, smoothFactor = 0.5,
-                  fillOpacity = 0, opacity = 0.2) %>%
+                  fillOpacity = 0, opacity = 0.2)%>%
+      addPolygons(data=bike_routes,weight = 4, color = ~palBike(BIKE_INFRASTRUCTURE_TYPE), opacity=0.3,fill = FALSE,
+                  group="Bike Routes")%>%
       setView(lng = ifelse(input$neighbourhood_names == "SURREY", -122.7953,  data$long),
               lat = ifelse(input$neighbourhood_names == "SURREY", 49.10714,  data$lat),
               zoom = ifelse(input$neighbourhood_names == "SURREY", 11, 12))
