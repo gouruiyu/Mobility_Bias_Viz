@@ -62,6 +62,11 @@ basemap <- leaflet(data = cams, options = leafletOptions(minZoom = ZOOM_MIN, max
   setView(lng = SURREY_LNG, lat = SURREY_LAT, zoom = (ZOOM_MIN+ZOOM_MAX)/2) %>%
   addMarkers(~longitude, ~latitude, layerId = ~as.character(station_name), popup = ~as.character(station_name), icon = camIcon) %>%
   addProviderTiles(providers$CartoDB.Positron)%>%
+  addLegend("topleft",
+            colors = BIKE_COLOR_LEGEND,
+            labels= BIKE_LABELS,
+            title= "Bike Lane Type",
+            group="Bike Routes")%>%
   addLayersControl(
     position = "bottomright",
     overlayGroups = c("Stores",
@@ -85,12 +90,7 @@ basemap <- leaflet(data = cams, options = leafletOptions(minZoom = ZOOM_MIN, max
   addMarkers(data=health_medicine, popup = ~as.character(BusinessName),icon= healthIcon, group= "Health and Medicine",clusterOptions = markerClusterOptions(maxClusterRadius = 30,showCoverageOnHover = FALSE))%>%
   addMarkers(data=finances,popup = ~as.character(BusinessName),icon= bizIcon, group="Business and Finance",clusterOptions = markerClusterOptions(maxClusterRadius = 30,showCoverageOnHover = FALSE))%>%
   addMarkers(data=services,popup = ~as.character(BusinessName),icon= serviceIcon,group= "Services",
-             clusterOptions = markerClusterOptions(showCoverageOnHover = FALSE))%>%
-  addLegend("topleft",
-            colors = BIKE_COLOR_LEGEND,
-            labels= BIKE_LABELS,
-            title= "Bike Lane Type",
-            group="Bike Routes")
+             clusterOptions = markerClusterOptions(showCoverageOnHover = FALSE))
 
 plotVehicleCountWithTime <- function(df, dateRange, timeRange, vehicleType, weekdayOnly, displayCorrection=FALSE) {
   if (nrow(df) == 0) {
