@@ -130,9 +130,10 @@ plotVehicleCountWithTime <- function(df, dateRange, timeRange, vehicleType, week
 ui <- dashboardPage(
   dashboardHeader(title = "Unbiased Mobility"),
   dashboardSidebar(
-    useShinyjs(),
+    # useShinyjs(),
     sidebarMenu( id = "sidemenu",
       menuItem("Cam Map", tabName = "basemap", icon = icon("camera")),
+      menuItem("Help", tabName = "help", icon = icon("question-circle")),
       menuItem("User Inputs", tabName = "userInputs", icon = icon("user")),
       selectInput(
         "neighbourhood_names",
@@ -193,7 +194,9 @@ ui <- dashboardPage(
                             draggable = TRUE, top = "auto", left = "auto" , right = "auto", bottom = 20,
                             width = 300, height = "auto",
                             uiOutput("image", height="auto"))
-    )
+    ),
+    tabItem(tabName = "help",
+            includeMarkdown("help.md"))
   )
 ))
 
