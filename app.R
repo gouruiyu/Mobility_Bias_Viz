@@ -120,14 +120,6 @@ baseHeatmap <- leaflet(options = leafletOptions(minZoom = ZOOM_MIN, maxZoom = ZO
               "Business and Finance",
               "Services",
               "Bike Routes"))%>%
-  # addHeatmap(
-  #   lng = ~heatmap_data$longitude,
-  #   lat = ~heatmap_data$latitude,
-  #   max = max(heatmap_data$number_instances),
-  #   radius = 5,
-  #   blur = 3,
-  #   intensity = ~heatmap_data$number_instances,
-  #   gradient = "OrRd")%>%
   addMarkers(data=stores, popup = ~as.character(BusinessName),icon= storeIcon,group="Stores",clusterOptions = markerClusterOptions(maxClusterRadius = 30,showCoverageOnHover = FALSE))%>%
   addMarkers(data=food.and.restaurant,popup = ~as.character(BusinessName), icon=restaurantIcon, group= "Food and Restaurants",clusterOptions = markerClusterOptions(maxClusterRadius = 30,showCoverageOnHover = FALSE))%>%
   addMarkers(data=alcohol,popup = ~as.character(BusinessName), icon= liquorIcon, group= "Liquor Stores",clusterOptions = markerClusterOptions(maxClusterRadius = 30,showCoverageOnHover = FALSE))%>%
@@ -203,6 +195,7 @@ ui <- dashboardPage(
     sidebarMenu( id = "sidemenu",
                  menuItem("Cam Map", tabName = "basemap", icon = icon("camera")),
                  menuItem("Heatmap", tabName = "baseHeatmap", icon = icon("camera")),
+                 hidden(
                  sliderInput(
                    "heatDate", label = "Choose Date Range:",
                    min = as.POSIXct("2020-12-01 00:00:00"),
@@ -216,9 +209,10 @@ ui <- dashboardPage(
                    max = as.POSIXct("2020-12-01 23:59:59"),
                    value = c(as.POSIXct("2020-12-01 00:00:00"), as.POSIXct("2020-12-01 23:59:59")),
                    timeFormat = "%T", ticks = F, animate = T, timezone = "-0800"
-                 ),
+                 )),
                  menuItem("Help", tabName = "help", icon = icon("question-circle")),
                  menuItem("User Inputs", tabName = "userInputs", icon = icon("user")),
+                 hidden(
                  selectInput(
                    "neighbourhood_names",
                    label = "Select a Neighbourhood:",
@@ -248,6 +242,7 @@ ui <- dashboardPage(
                  radioButtons("vehicleType", "Vehicle Type:", choiceNames = VEHICLE_TYPES_NAME,
                               choiceValues = VEHICLE_TYPES),
                  checkboxInput("displayCorrection", label = "Correct for undercounting (only effective for car type)", value = FALSE)
+                 )
     )
   ),
   dashboardBody(
@@ -296,9 +291,9 @@ server <- function(input, output, session) {
   # dynamically show/hide userInputs in the sidebarMenu
   observeEvent(input$sidemenu, {
     if (input$sidemenu == "userInputs") {
-      shinyjs::show("neighbourhood_names")
       shinyjs::hide("heatTime")
       shinyjs::hide("heatDate")
+      shinyjs::show("neighbourhood_names")
       shinyjs::show("timeRange")
       shinyjs::show("dateRange")
       shinyjs::show("camid")
@@ -306,7 +301,6 @@ server <- function(input, output, session) {
       shinyjs::show("amHour")
       shinyjs::show("pmHour")
       shinyjs::show("displayCorrection")
-      
     } 
     else {
       shinyjs::show("heatTime")
