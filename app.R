@@ -12,7 +12,6 @@ library(hms)
 library(rlang)
 library(DT)
 library(nngeo)
-library(tidyr)
 library(purrr)
 
 source("biz_data_clean.R")
@@ -267,7 +266,7 @@ server <- function(input, output, session) {
   # current selected camera
   current_cam <- reactiveValues(id = NULL, data = NULL, lat = NULL, lng = NULL)
   selected_cams <- reactiveValues(ids = c(), data = c())
-  nn_cameras <- reactiveValues()
+  nn_cameras <- reactiveValues(ids = c(), data = c())
   
   # AM and PM's same-intersection/nearest-neighbor camera comparison results
   paired_am_res <- reactiveValues()
@@ -300,16 +299,19 @@ server <- function(input, output, session) {
   
   observeEvent(input$recalc_radius, {
     if (is.null(current_biz$data)) return()
-    nn_cameras <- st_nn(current_biz$data, cams_sf, k = 3, maxdist = input$cams_radius)
-    nn_cameras <- lapply(nn_cameras, function(x) cams_sf[x,])
-    nn_cameras_df <- ldply(nn_cameras, data.frame)
-    nn_cameras_df <- nn_cameras_df %>%
-      mutate(lng = unlist(map(nn_cameras_df$geometry, 1)),
-             lat = unlist(map(nn_cameras_df$geometry, 2)))
-    req(nn_cameras_df)
+    nn_cams <- st_nn(current_biz$data, cams_sf, k = 3, maxdist = input$cams_radius)
+    nn_cams <- lapply(nn_cams, function(x) cams_sf[x,])
+    nn_cams_df <- ldply(nn_cams, data.frame)
+    nn_cams_df <- nn_cams_df %>%
+      mutate(lng = unlist(map(nn_cams_df$geometry, 1)),
+             lat = unlist(map(nn_cams_df$geometry, 2)))
+
+    req(nn_cams_df)
+    nn_cameras$ids <- nn_cams_df$station_name
+
     proxy_business %>%
       clearGroup("Nearby Cams")
-    if (nrow(nn_cameras_df) == 0) {
+    if (nrow(nn_cams_df) == 0) {
       return()
     }
     proxy_business %>%
@@ -317,7 +319,7 @@ server <- function(input, output, session) {
                  lng = current_biz$lng,
                  lat = current_biz$lat,
                  radius = input$cams_radius) %>%
-      addAwesomeMarkers(data = nn_cameras_df, lat = ~lat, lng = ~lng, group = "Nearby Cams")
+      addAwesomeMarkers(data = nn_cams_df, lat = ~lat, lng = ~lng, group = "Nearby Cams")
   })
   
   # Update current camera according to marker click
@@ -331,21 +333,24 @@ server <- function(input, output, session) {
       current_biz$data <- bizs %>% filter(CompanyID == current_biz$id)
       current_biz$lat <- marker$lat
       current_biz$lng <- marker$lng
-      nn_cameras <- st_nn(current_biz$data, cams_sf, k = 3, maxdist = input$cams_radius)
-      nn_cameras <- lapply(nn_cameras, function(x) cams_sf[x,])
-      nn_cameras_df <- ldply(nn_cameras, data.frame)
-      nn_cameras_df <- nn_cameras_df %>%
-        mutate(lng = unlist(map(nn_cameras_df$geometry, 1)),
-               lat = unlist(map(nn_cameras_df$geometry, 2)))
-      req(nn_cameras_df)
-      if (nrow(nn_cameras_df) == 0) return()
+      nn_cams <- st_nn(current_biz$data, cams_sf, k = 3, maxdist = input$cams_radius)
+      nn_cams <- lapply(nn_cams, function(x) cams_sf[x,])
+      nn_cams_df <- ldply(nn_cams, data.frame)
+      nn_cams_df <- nn_cams_df %>%
+        mutate(lng = unlist(map(nn_cams_df$geometry, 1)),
+               lat = unlist(map(nn_cams_df$geometry, 2)))
+      
+      req(nn_cams_df)
+      nn_cameras$ids <- nn_cams_df$station_name
+      
+      if (nrow(nn_cams_df) == 0) return()
       proxy_business %>%
         clearGroup("Nearby Cams") %>%
         addCircles(group = "Nearby Cams",
                    lng = marker$lng,
                    lat = marker$lat,
                    radius = input$cams_radius) %>%
-        addAwesomeMarkers(data = nn_cameras_df, lat = ~lat, lng = ~lng, group = "Nearby Cams")
+        addAwesomeMarkers(data = nn_cams_df, lat = ~lat, lng = ~lng, group = "Nearby Cams")
       return()
     }
     
@@ -410,15 +415,50 @@ server <- function(input, output, session) {
   # Update data to display
   observeEvent(selected_cams$ids, {selected_cams$data <- cams_data %>% filter(station %in% selected_cams$ids)})
   
+  observeEvent(nn_cameras$ids, {
+    nn_cameras$data <- cams_data %>% filter(station %in% nn_cameras$ids)
+  })
+  
+  # Tracking previously selected groups
+  prev_selected_groups <- reactiveVal(NULL)
+  # Toggle on/off the line plot for Nearby Cams
+  show_nn_cameras <- reactiveVal(FALSE)
+
+  # Layer Control for Nearby Cams
+  observeEvent(input$basemap_groups, {
+    selected_groups <- req(input$basemap_groups)
+    print(is.null(prev_selected_groups()))
+    print(prev_selected_groups())
+    print(selected_groups)
+
+    if (!is.null(prev_selected_groups())) {
+      if ("Nearby Cams" %in% selected_groups & "Nearby Cams" %notin% prev_selected_groups()) {
+        show_nn_cameras(TRUE)
+        return()
+      }
+    }
+    show_nn_cameras(FALSE)
+    prev_selected_groups(selected_groups)
+  })
+  
   # Update line plot             
   observe({
     output$linePlotVehicleCounts <- renderPlot({
-      plotVehicleCountWithTime(selected_cams$data, 
-                               as.POSIXct(format(input$dateRange, "%Y-%m-%d")),
-                               input$timeRange,
-                               input$vehicleType,
-                               input$weekdayOnly,
-                               input$displayCorrection)
+      if (show_nn_cameras()) {
+        plotVehicleCountWithTime(nn_cameras$data,
+                                 as.POSIXct(format(input$dateRange, "%Y-%m-%d")),
+                                 input$timeRange,
+                                 input$vehicleType,
+                                 input$weekdayOnly,
+                                 input$displayCorrection)
+      } else {
+       plotVehicleCountWithTime(selected_cams$data, 
+                                 as.POSIXct(format(input$dateRange, "%Y-%m-%d")),
+                                 input$timeRange,
+                                 input$vehicleType,
+                                 input$weekdayOnly,
+                                 input$displayCorrection)
+      }
     })
     output$ampmPairTable <- DT::renderDataTable({
       paired_am_res <- pair_analyze_am(selected_cams, as.POSIXct(format(input$dateRange, "%Y-%m-%d")), input$weekdayOnly)
