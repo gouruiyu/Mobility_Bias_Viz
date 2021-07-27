@@ -96,7 +96,7 @@ basemap <- leaflet(data = cams, options = leafletOptions(minZoom = ZOOM_MIN, max
              clusterOptions = markerClusterOptions(showCoverageOnHover = FALSE))
 
 baseHeatmap <- leaflet(options = leafletOptions(minZoom = ZOOM_MIN, maxZoom = ZOOM_MAX)) %>%
-  setView(lng = SURREY_LNG, lat = SURREY_LAT, zoom = (ZOOM_MIN+ZOOM_MAX)/2) %>%
+  setView(lng = SURREY_LNG, lat = SURREY_LAT, zoom = 10) %>%
   addProviderTiles(providers$CartoDB.Positron)%>%
   addLegend("topleft",
             colors = BIKE_COLOR_LEGEND,
@@ -175,41 +175,35 @@ plotVehicleCountWithTime <- function(df, dateRange, timeRange, vehicleType, week
   return(myplot)
 }
 
-#fxn for heatmap input
-filter_DT<-function(df,heatTime,heatDate){
-  hourRange <- as_hms(with_tz(heatTime, "America/Vancouver"))
-  df$time <- as.POSIXct(df$time)
-  df$date <- as.POSIXct(format(df$time, "%Y-%m-%d"))
-  df <- df %>% 
-    filter(date %within% interval(heatDate[1], heatDate[2])) %>%
-    filter(as_hms(time) >= hourRange[1] & as_hms(time) <= hourRange[2])
-  
-}
+# #fxn for heatmap input
+# filter_DT<-function(df,heatTime,heatDate){
+#   hourRange <- as_hms(with_tz(heatTime, "America/Vancouver"))
+#   df$time <- as.POSIXct(df$time)
+#   df$date <- as.POSIXct(format(df$time, "%Y-%m-%d"))
+#   df <- df %>% 
+#     filter(date %within% interval(heatDate[1], heatDate[2])) %>%
+#     filter(as_hms(time) >= hourRange[1] & as_hms(time) <= hourRange[2])
+#   
+# }
 
 
 
 ui <- dashboardPage(
   dashboardHeader(title = "Unbiased Mobility"),
   dashboardSidebar(
-    # useShinyjs(),
+    useShinyjs(),
     sidebarMenu( id = "sidemenu",
                  menuItem("Cam Map", tabName = "basemap", icon = icon("camera")),
                  menuItem("Heatmap", tabName = "baseHeatmap", icon = icon("camera")),
                  hidden(
                  sliderInput(
-                   "heatDate", label = "Choose Date Range:",
+                   "heatDTRange", label = "Choose Time Range:",
                    min = as.POSIXct("2020-12-01 00:00:00"),
                    max = as.POSIXct("2020-12-31 23:59:59"),
-                   value = c(as.POSIXct("2020-12-01 00:00:00"),as.POSIXct("2020-12-07 23:59:59")),
-                   timeFormat = "%F", ticks = F, animate = T
+                   value = c(as.POSIXct("2020-12-01 00:00:00"), as.POSIXct("2020-12-01 01:00:00")),
+                   timeFormat = "%Y-%m-%d %H:%M", ticks = T, dragRange = FALSE, step=2000, animate = T
+                 )
                  ),
-                 sliderInput(
-                   "heatTime", label = "Choose Time Range:",
-                   min = as.POSIXct("2020-12-01 00:00:00"),
-                   max = as.POSIXct("2020-12-01 23:59:59"),
-                   value = c(as.POSIXct("2020-12-01 00:00:00"), as.POSIXct("2020-12-01 23:59:59")),
-                   timeFormat = "%T", ticks = F, animate = T, timezone = "-0800"
-                 )),
                  menuItem("Help", tabName = "help", icon = icon("question-circle")),
                  menuItem("User Inputs", tabName = "userInputs", icon = icon("user")),
                  hidden(
@@ -290,9 +284,8 @@ server <- function(input, output, session) {
   
   # dynamically show/hide userInputs in the sidebarMenu
   observeEvent(input$sidemenu, {
-    if (input$sidemenu == "userInputs") {
-      shinyjs::hide("heatTime")
-      shinyjs::hide("heatDate")
+    if (input$sidemenu == "userInputs" | input$sidemenu=="basemap") {
+      shinyjs::hide("heatDTRange")
       shinyjs::show("neighbourhood_names")
       shinyjs::show("timeRange")
       shinyjs::show("dateRange")
@@ -302,9 +295,8 @@ server <- function(input, output, session) {
       shinyjs::show("pmHour")
       shinyjs::show("displayCorrection")
     } 
-    else {
-      shinyjs::show("heatTime")
-      shinyjs::show("heatDate")
+    else if (input$sidemenu== "baseHeatmap") {
+      shinyjs::show("heatDTRange")
       shinyjs::hide("neighbourhood_names")
       shinyjs::hide("timeRange")
       shinyjs::hide("dateRange")
@@ -469,14 +461,11 @@ server <- function(input, output, session) {
   })
   #heatmap values based on user's input 
   filtered_hm <- reactive({
-    filter_DT(heatmap_data,input$heatTime,as.POSIXct(format(input$dateRange, "%Y-%m-%d")))
-    
+    cbind(heatmap_data[heatmap_data$time >= input$heatDTRange[1] & heatmap_data$time <= input$heatDTRange[2], ])
   })
   
   #heatmap
-  observeEvent({
-    input$heatTime
-    input$heatDate},
+  observeEvent(input$heatDTRange,
     {                    
       hmdff <- filtered_hm()  #
       leafletProxy("heatmap", data = hmdff) %>%
@@ -484,10 +473,10 @@ server <- function(input, output, session) {
         addHeatmap(
           lng = ~hmdff$longitude,
           lat = ~hmdff$latitude,
-          max =15,
+          max =max(hmdff$car_count),
           radius = 5,
           blur = 3,
-          intensity = ~hmdff$number_instances,
+          intensity = ~hmdff$car_count,
           gradient = "OrRd")
     })
 }
