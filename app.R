@@ -11,6 +11,9 @@ library(lubridate)
 library(hms)
 library(rlang)
 library(DT)
+library(nngeo)
+library(tidyr)
+library(purrr)
 
 source("biz_data_clean.R")
 source("stats/ampm_comparison_model.R")
@@ -26,6 +29,7 @@ MULTI_SELECT_TOGGLE = TRUE
 # Load data
 cams <- read.csv("data/surrey_desc.csv")
 cams_data <- read.csv("data/surrey_data.csv")
+cams_sf <- cams %>% st_as_sf(coords = c("longitude", "latitude"), crs = 4326)
 neighbourhood<-readBoundaries('data/surrey_city_boundary.json')
 bike_routes <- st_read("data/bikeroutes_in_4326.geojson", quiet = TRUE) %>%
   st_transform(crs = 4326)
@@ -61,7 +65,7 @@ ZOOM_MAX = 18
 
 basemap <- leaflet(data = cams, options = leafletOptions(minZoom = ZOOM_MIN, maxZoom = ZOOM_MAX)) %>%
   setView(lng = SURREY_LNG, lat = SURREY_LAT, zoom = (ZOOM_MIN+ZOOM_MAX)/2) %>%
-  addMarkers(~longitude, ~latitude, layerId = ~as.character(station_name), popup = ~as.character(station_name), icon = camIcon) %>%
+  addMarkers(~longitude, ~latitude, layerId = ~as.character(station_name), label = ~as.character(station_name), icon = camIcon) %>%
   addProviderTiles(providers$CartoDB.Positron)%>%
   addLegend("topleft",
             colors = BIKE_COLOR_LEGEND,
@@ -76,7 +80,8 @@ basemap <- leaflet(data = cams, options = leafletOptions(minZoom = ZOOM_MIN, max
                       "Health and Medicine",
                       "Business and Finance",
                       "Services",
-                      "Bike Routes"),
+                      "Bike Routes",
+                      "Nearby Cams"),
     options=layersControlOptions(collapsed = TRUE))%>%
   hideGroup(c("Stores",
               "Food and Restaurants",
@@ -84,13 +89,14 @@ basemap <- leaflet(data = cams, options = leafletOptions(minZoom = ZOOM_MIN, max
               "Health and Medicine",
               "Business and Finance",
               "Services",
-              "Bike Routes"))%>%
-  addMarkers(data=stores, popup = ~as.character(BusinessName),icon= storeIcon,group="Stores",clusterOptions = markerClusterOptions(maxClusterRadius = 30,showCoverageOnHover = FALSE))%>%
-  addMarkers(data=food.and.restaurant,popup = ~as.character(BusinessName), icon=restaurantIcon, group= "Food and Restaurants",clusterOptions = markerClusterOptions(maxClusterRadius = 30,showCoverageOnHover = FALSE))%>%
-  addMarkers(data=alcohol,popup = ~as.character(BusinessName), icon= liquorIcon, group= "Liquor Stores",clusterOptions = markerClusterOptions(maxClusterRadius = 30,showCoverageOnHover = FALSE))%>%
-  addMarkers(data=health_medicine, popup = ~as.character(BusinessName),icon= healthIcon, group= "Health and Medicine",clusterOptions = markerClusterOptions(maxClusterRadius = 30,showCoverageOnHover = FALSE))%>%
-  addMarkers(data=finances,popup = ~as.character(BusinessName),icon= bizIcon, group="Business and Finance",clusterOptions = markerClusterOptions(maxClusterRadius = 30,showCoverageOnHover = FALSE))%>%
-  addMarkers(data=services,popup = ~as.character(BusinessName),icon= serviceIcon,group= "Services",
+              "Bike Routes",
+              "Nearby Cams")) %>%
+  addMarkers(data=stores, layerId = ~CompanyID, label = ~as.character(BusinessName),icon= storeIcon,group="Stores",clusterOptions = markerClusterOptions(maxClusterRadius = 30,showCoverageOnHover = FALSE))%>%
+  addMarkers(data=food.and.restaurant, layerId = ~CompanyID, label = ~as.character(BusinessName), icon=restaurantIcon, group= "Food and Restaurants",clusterOptions = markerClusterOptions(maxClusterRadius = 30,showCoverageOnHover = FALSE))%>%
+  addMarkers(data=alcohol, layerId = ~CompanyID, label = ~as.character(BusinessName), icon= liquorIcon, group= "Liquor Stores",clusterOptions = markerClusterOptions(maxClusterRadius = 30,showCoverageOnHover = FALSE))%>%
+  addMarkers(data=health_medicine, layerId = ~CompanyID, label = ~as.character(BusinessName),icon= healthIcon, group= "Health and Medicine",clusterOptions = markerClusterOptions(maxClusterRadius = 30,showCoverageOnHover = FALSE))%>%
+  addMarkers(data=finances, layerId = ~CompanyID, label = ~as.character(BusinessName),icon= bizIcon, group="Business and Finance",clusterOptions = markerClusterOptions(maxClusterRadius = 30,showCoverageOnHover = FALSE))%>%
+  addMarkers(data=services, layerId = ~CompanyID, label = ~as.character(BusinessName),icon= serviceIcon,group= "Services",
              clusterOptions = markerClusterOptions(showCoverageOnHover = FALSE))
 
 plotVehicleCountWithTime <- function(df, dateRange, timeRange, vehicleType, weekdayOnly, displayCorrection=FALSE) {
@@ -205,7 +211,22 @@ ui <- dashboardPage(
               absolutePanel(id = "camera_img",
                             draggable = TRUE, top = "auto", left = "auto" , right = "auto", bottom = 20,
                             width = 300, height = "auto",
-                            uiOutput("image", height="auto"))
+                            uiOutput("image", height="auto")),
+              absolutePanel(id = "bizs_cams_radius",
+                draggable = TRUE, top = 55, left = "auto" , right = "auto", bottom = "auto",
+                width = 300, height = "auto",
+                dropdownButton(
+                  actionButton(inputId = "recalc_radius", label = "Go"),
+                  sliderInput(inputId = 'cams_radius',
+                              label = 'Radius',
+                              value = 1000,
+                              min = 0,
+                              max = 3000),
+                  circle = TRUE, status = "danger",
+                  icon = icon("gear"), width = "300px",
+                  tooltip = tooltipOptions(title = "Specify radius for nearby cameras")
+                ),
+              )
     ),
     tabItem(tabName = "help",
             includeMarkdown("help.md"))
@@ -239,10 +260,14 @@ server <- function(input, output, session) {
   
   saved_camId <- reactiveVal(isolate(input$camid))
   update <- reactiveVal(TRUE)
+  
+  # current selected business
+  current_biz <- reactiveValues(id = NULL, data = NULL, lat = NULL, lng = NULL)
 
   # current selected camera
   current_cam <- reactiveValues(id = NULL, data = NULL, lat = NULL, lng = NULL)
   selected_cams <- reactiveValues(ids = c(), data = c())
+  nn_cameras <- reactiveValues()
   
   # AM and PM's same-intersection/nearest-neighbor camera comparison results
   paired_am_res <- reactiveValues()
@@ -253,6 +278,7 @@ server <- function(input, output, session) {
 
   # highlight current selected cam marker
   proxy <- leafletProxy('basemap')
+  proxy_business <- leafletProxy('basemap')
   
   observeEvent(input$amHour, {
     updateSliderInput(session, "timeRange", value = c(as.POSIXct("2020-12-01 07:00:00"), as.POSIXct("2020-12-01 10:00:00")), timeFormat = "%T")
@@ -272,16 +298,63 @@ server <- function(input, output, session) {
     }
   })
   
+  observeEvent(input$recalc_radius, {
+    if (is.null(current_biz$data)) return()
+    nn_cameras <- st_nn(current_biz$data, cams_sf, k = 3, maxdist = input$cams_radius)
+    nn_cameras <- lapply(nn_cameras, function(x) cams_sf[x,])
+    nn_cameras_df <- ldply(nn_cameras, data.frame)
+    nn_cameras_df <- nn_cameras_df %>%
+      mutate(lng = unlist(map(nn_cameras_df$geometry, 1)),
+             lat = unlist(map(nn_cameras_df$geometry, 2)))
+    req(nn_cameras_df)
+    proxy_business %>%
+      clearGroup("Nearby Cams")
+    if (nrow(nn_cameras_df) == 0) {
+      return()
+    }
+    proxy_business %>%
+      addCircles(group = "Nearby Cams",
+                 lng = current_biz$lng,
+                 lat = current_biz$lat,
+                 radius = input$cams_radius) %>%
+      addAwesomeMarkers(data = nn_cameras_df, lat = ~lat, lng = ~lng, group = "Nearby Cams")
+  })
+  
   # Update current camera according to marker click
   observeEvent(input$basemap_marker_click, {
     marker <- input$basemap_marker_click
     if (is.null(marker$id)) return()
+    
+    # On selecting a business marker
+    if (marker$id %in% bizs_ids) {
+      current_biz$id <- marker$id
+      current_biz$data <- bizs %>% filter(CompanyID == current_biz$id)
+      current_biz$lat <- marker$lat
+      current_biz$lng <- marker$lng
+      nn_cameras <- st_nn(current_biz$data, cams_sf, k = 3, maxdist = input$cams_radius)
+      nn_cameras <- lapply(nn_cameras, function(x) cams_sf[x,])
+      nn_cameras_df <- ldply(nn_cameras, data.frame)
+      nn_cameras_df <- nn_cameras_df %>%
+        mutate(lng = unlist(map(nn_cameras_df$geometry, 1)),
+               lat = unlist(map(nn_cameras_df$geometry, 2)))
+      req(nn_cameras_df)
+      if (nrow(nn_cameras_df) == 0) return()
+      proxy_business %>%
+        clearGroup("Nearby Cams") %>%
+        addCircles(group = "Nearby Cams",
+                   lng = marker$lng,
+                   lat = marker$lat,
+                   radius = input$cams_radius) %>%
+        addAwesomeMarkers(data = nn_cameras_df, lat = ~lat, lng = ~lng, group = "Nearby Cams")
+      return()
+    }
+    
     current_cam$id <- marker$id
 
     if (marker$id %in% selected_cams$ids) {
       selected_cams$ids <- selected_cams$ids[selected_cams$ids != marker$id]
       proxy %>%
-        addMarkers(popup=as.character(marker$id),
+        addMarkers(label=as.character(marker$id),
                    layerId = as.character(marker$id),
                    lng=marker$lng,
                    lat=marker$lat,
@@ -295,7 +368,7 @@ server <- function(input, output, session) {
     else {
       selected_cams$ids <- c(current_cam$id, selected_cams$ids)
       proxy %>%
-        addAwesomeMarkers(popup=as.character(current_cam$id),
+        addAwesomeMarkers(label=as.character(current_cam$id),
                           layerId = as.character(current_cam$id),
                           lng=current_cam$lng,
                           lat=current_cam$lat,
@@ -325,7 +398,7 @@ server <- function(input, output, session) {
     # print(selected_cams$ids)
     if (current_cam$id %in% selected_cams$ids) {
         proxy %>%
-          addAwesomeMarkers(popup=as.character(current_cam$id),
+          addAwesomeMarkers(label=as.character(current_cam$id),
                             layerId = as.character(current_cam$id),
                             lng=current_cam$lng,
                             lat=current_cam$lat,
