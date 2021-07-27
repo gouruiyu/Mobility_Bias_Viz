@@ -99,7 +99,7 @@ basemap <- leaflet(data = cams, options = leafletOptions(minZoom = ZOOM_MIN, max
 
 baseHeatmap <- leaflet(options = leafletOptions(minZoom = ZOOM_MIN, maxZoom = ZOOM_MAX)) %>%
   setView(lng = SURREY_LNG, lat = SURREY_LAT, zoom = 10) %>%
-  addProviderTiles(providers$CartoDB.Positron)%>%
+  addProviderTiles(providers$CartoDB.DarkMatter)%>%
   addLegend("topleft",
             colors = BIKE_COLOR_LEGEND,
             labels= BIKE_LABELS,
@@ -129,8 +129,10 @@ baseHeatmap <- leaflet(options = leafletOptions(minZoom = ZOOM_MIN, maxZoom = ZO
   addMarkers(data=finances,popup = ~as.character(BusinessName),icon= bizIcon, group="Business and Finance",clusterOptions = markerClusterOptions(maxClusterRadius = 30,showCoverageOnHover = FALSE))%>%
   addMarkers(data=services,popup = ~as.character(BusinessName),icon= serviceIcon,group= "Services",
              clusterOptions = markerClusterOptions(showCoverageOnHover = FALSE))%>%
-  addPolygons(data= heatmap_boundaries,color = "#141722", weight = 3, smoothFactor = 0.5,
-              fillOpacity = 0, opacity = 0.2)
+  addPolygons(data= heatmap_boundaries,color = "#ffffff", weight = 3, smoothFactor = 0.5,
+              fillOpacity = 0, opacity = 0.2)%>%
+  addPolygons(data=bike_routes,weight = 4, color = ~palBike(BIKE_INFRASTRUCTURE_TYPE), opacity=0.3,fill = FALSE,
+              group="Bike Routes")
 
 
 
@@ -198,7 +200,7 @@ ui <- dashboardPage(
     useShinyjs(),
     sidebarMenu( id = "sidemenu",
                  menuItem("Cam Map", tabName = "basemap", icon = icon("camera")),
-                 menuItem("Heatmap", tabName = "baseHeatmap", icon = icon("camera")),
+                 menuItem("Heatmap (Car Count Only)", tabName = "baseHeatmap", icon = icon("camera")),
                  hidden(
                  sliderInput(
                    "heatDTRange", label = "Choose Time Range:",
@@ -478,7 +480,7 @@ server <- function(input, output, session) {
         addHeatmap(
           lng = ~hmdff$longitude,
           lat = ~hmdff$latitude,
-          max =max(hmdff$car_count),
+          max =16,
           radius = 5,
           blur = 3,
           intensity = ~hmdff$car_count,
