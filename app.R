@@ -432,7 +432,7 @@ server <- function(input, output, session) {
     print(selected_groups)
 
     if (!is.null(prev_selected_groups())) {
-      if ("Nearby Cams" %in% selected_groups & "Nearby Cams" %notin% prev_selected_groups()) {
+      if ("Nearby Cams" %in% selected_groups & (prev_selected_groups() == c("Nearby Cams") | "Nearby Cams" %notin% prev_selected_groups())) {
         show_nn_cameras(TRUE)
         return()
       }
@@ -444,7 +444,7 @@ server <- function(input, output, session) {
   # Update line plot             
   observe({
     output$linePlotVehicleCounts <- renderPlot({
-      if (show_nn_cameras()) {
+      if (show_nn_cameras() & !is.null(nn_cameras$data)) {
         plotVehicleCountWithTime(nn_cameras$data,
                                  as.POSIXct(format(input$dateRange, "%Y-%m-%d")),
                                  input$timeRange,
