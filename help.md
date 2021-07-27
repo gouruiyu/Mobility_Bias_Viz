@@ -29,7 +29,18 @@ Notice that the current used one is a preliminary version only effective to car 
 
 ### Rush Hours Comparison
 
-### Bicyle Lanes
+
+## UI Features 
+
+### Bicyle Routes
+An overlay of bicycle routes is included in this application along with the overlay panels. To view the bicycle routes, ensure that the label "Bike Routes " is checked. The bicycle routes are coloured in 7 types. This is shown in the legend listed in the top left corner.
+
+
+### Neighbourhood Filters 
+A selection of neighbourhoods is available for selection. The option panel is on the left hand side and it is titled "Select a Neighbourhood". The default selected is SURREY, where it displays all the neighbourhoods within the city of Surrey. When a neighbourhood is selected, the map will shift its view to the selected neighbourhood.
+
+### Business Overlays
+There are 6 business overlays included in this application. All of them are clustered into groups. Those are: Stores, Foods and Restaurants, Liquor Stores, Health and Medicine, Businesses and Finance, and Services. As the map is zoomed in, each individual business is shown in more detail.
 
 
 ## Acknowledgement
