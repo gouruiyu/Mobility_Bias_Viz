@@ -4,6 +4,7 @@ library(shinyWidgets)
 library(shinyjs)
 library(leaflet)
 library(sf)
+library(tidyr)
 library(ggplot2)
 library(dplyr)
 library(lubridate)
@@ -260,7 +261,8 @@ ui <- dashboardPage(
                                 width = 500, height = "auto",
                                 box(
                                   title = "Traffic Explorer",
-                                  materialSwitch("weekdayOnly", label = "Weekdays Only", status = "primary", value = FALSE),
+                                  materialSwitch("weekdayOnly", label = "Weekdays Only", status = "primary", inline = TRUE, value = FALSE),
+                                  materialSwitch("displayCorrection", label = "Correct for Undercount", status = "primary", inline = TRUE, value = FALSE),
                                   plotOutput("linePlotVehicleCounts", height = "200"),
                                   collapsible = T,
                                   width = "100%", height = "auto"
@@ -463,7 +465,8 @@ server <- function(input, output, session) {
   # Camera Image
   output$image <- renderUI({
     img_URI = NULL
-    if (!is.null(current_cam$id) & length(selected_cams$ids) == 1) {
+    if (!is.null(current_cam$id) & input$displayImage) {
+      # TODO: can be optimize to cache URI when switching displayImage
       img_URI = fetchRealtimeImg(station = current_cam$id)
     }
     if (!is.null(img_URI)) {
