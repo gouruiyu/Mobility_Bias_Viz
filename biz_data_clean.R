@@ -1,6 +1,9 @@
 bizs<-read.csv('data/all_businessess.csv')%>%
   st_as_sf(coords = c("lon_pc", "lat_pc"), crs = 4326)
 
+# All-businesses company ids
+bizs_ids <- bizs$CompanyID
+
 ######Sorting Business Data By Sector #####
 stores<- bizs %>%
   filter(LicenceDescription %in% c("Retail Merchant - 0 to 2 Employees",
