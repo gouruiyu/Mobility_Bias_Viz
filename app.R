@@ -28,6 +28,8 @@ MULTI_SELECT_TOGGLE = TRUE
 cams <- read.csv("data/surrey_desc.csv")
 cams_data <- read.csv("data/surrey_data.csv")
 neighbourhood<-readBoundaries('data/surrey_city_boundary.json')
+heatmap_boundaries<-st_read('data/surrey.geojson', quiet = TRUE) %>%
+  st_transform(crs = 4326)
 bike_routes <- st_read("data/bikeroutes_in_4326.geojson", quiet = TRUE) %>%
   st_transform(crs = 4326)
 heatmap_data<-render.daily(cams_data,cams)
@@ -126,7 +128,9 @@ baseHeatmap <- leaflet(options = leafletOptions(minZoom = ZOOM_MIN, maxZoom = ZO
   addMarkers(data=health_medicine, popup = ~as.character(BusinessName),icon= healthIcon, group= "Health and Medicine",clusterOptions = markerClusterOptions(maxClusterRadius = 30,showCoverageOnHover = FALSE))%>%
   addMarkers(data=finances,popup = ~as.character(BusinessName),icon= bizIcon, group="Business and Finance",clusterOptions = markerClusterOptions(maxClusterRadius = 30,showCoverageOnHover = FALSE))%>%
   addMarkers(data=services,popup = ~as.character(BusinessName),icon= serviceIcon,group= "Services",
-             clusterOptions = markerClusterOptions(showCoverageOnHover = FALSE))
+             clusterOptions = markerClusterOptions(showCoverageOnHover = FALSE))%>%
+  addPolygons(data= heatmap_boundaries,color = "#141722", weight = 3, smoothFactor = 0.5,
+              fillOpacity = 0, opacity = 0.2)
 
 
 
@@ -320,6 +324,7 @@ server <- function(input, output, session) {
       data <- neighbourhood %>% 
         dplyr::filter(NAME == input$neighbourhood_names)}
     
+    ## adding bikeroutess
     leafletProxy("basemap", data= data) %>%
       clearShapes() %>%
       addPolygons(color = "#141722", weight = 3, smoothFactor = 0.5,
