@@ -184,12 +184,10 @@ plotVehicleCountWithTime <- function(df, dateRange, timeRange, vehicleType, week
 # #fxn for heatmap input
 # filter_DT<-function(df,heatTime,heatDate){
 #   hourRange <- as_hms(with_tz(heatTime, "America/Vancouver"))
-#   df$time <- as.POSIXct(df$time)
-#   df$date <- as.POSIXct(format(df$time, "%Y-%m-%d"))
-#   df <- df %>% 
-#     filter(date %within% interval(heatDate[1], heatDate[2])) %>%
+#   df <- df %>%
+#     filter(date == heatDate) %>%
 #     filter(as_hms(time) >= hourRange[1] & as_hms(time) <= hourRange[2])
-#   
+# 
 # }
 
 
@@ -468,7 +466,8 @@ server <- function(input, output, session) {
   })
   #heatmap values based on user's input 
   filtered_hm <- reactive({
-    cbind(heatmap_data[heatmap_data$time >= input$heatDTRange[1] & heatmap_data$time <= input$heatDTRange[2], ])
+    # filter_DT(heatmap_data,input$heatTime,as.POSIXct(format(input$heatDate, "%Y-%m-%d")))
+    heatmap_data[heatmap_data$time >= input$heatDTRange[1] & heatmap_data$time <= input$heatDTRange[2], ]
   })
   
   #heatmap
