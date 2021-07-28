@@ -10,6 +10,7 @@ library(tidyverse)
 library(hms)
 library(RColorBrewer)
 library(classInt)
+library(xts)
 
 ## render data for heatmap
 
@@ -19,23 +20,7 @@ render.daily <- function(surrey_data, surrey_desc) {
     mutate(time = as.POSIXct(time),
            time = with_tz(time, tzone = "America/Los_Angeles"))
   
-  breaks_qt <-
-    classIntervals(
-      merged_df$car_count,
-      n = 4,
-      style = "fixed",
-      fixedBreaks = c(-1, 5, 10, 15, c(max(
-        merged_df$car_count))),
-      intervalClosure = c("right")
-    )
-  
-  merged_df <-
-    mutate(merged_df,
-           car_count_cat = cut(
-             car_count,
-             breaks = breaks_qt$brks,
-             labels = c("No traffic", "Low traffic", "Medium traffic", "Busy traffic")
-           ))
+
   return(merged_df)
   
 }
