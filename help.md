@@ -33,7 +33,7 @@ In general the app uses the two maps for its basemap. The Positron and the Dark 
 
 ### Business Overlays
 
-There are 6 business overlays included in this application. All of them are clustered into groups. Those are: 
+There are 6 business overlays included in this application. All of them are clustered into groups. Those are:   
 -Stores
 -Foods and Restaurants
 -Liquor Stores
