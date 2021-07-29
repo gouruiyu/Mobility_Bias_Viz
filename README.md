@@ -15,6 +15,8 @@ data/* folder is gitignored for confidential concerns. The code expects the foll
 - surrey_desc.csv
 - surrey_data.csv 
 - all_businesses.csv
+- bikeroutes_in_4326.geojson
+-  surrey_city_boundary.json
 
 (For dev only, subject to change)
 
