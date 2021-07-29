@@ -30,7 +30,7 @@ body, label, input, button, select {
 }
 h1, h2, h3, h4 { font-weight: 400; }
 
-#controls {
+#controls, #comparison{
   /* Appearance */
   background-color: white;
   cursor: move;
