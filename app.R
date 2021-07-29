@@ -102,7 +102,7 @@ basemap <- leaflet(data = cams, options = leafletOptions(minZoom = ZOOM_MIN, max
              clusterOptions = markerClusterOptions(showCoverageOnHover = FALSE))
 
 baseHeatmap <- leaflet(options = leafletOptions(minZoom = ZOOM_MIN, maxZoom = ZOOM_MAX)) %>%
-  setView(lng = SURREY_LNG, lat = SURREY_LAT, zoom = (ZOOM_MIN+ZOOM_MAX)/2) %>%
+  setView(lng = SURREY_LNG, lat = SURREY_LAT, zoom = 10) %>%
   addProviderTiles(providers$CartoDB.DarkMatter)%>%
   addLegend("topleft",
             colors = BIKE_COLOR_LEGEND,
@@ -190,7 +190,7 @@ ui <- dashboardPage(
     useShinyjs(),
     sidebarMenu( id = "sidemenu",
                  menuItem("Cam Map", tabName = "basemap", icon = icon("camera")),
-                 menuItem("Heatmap(Car Count Only)", tabName='base_Heatmap',icon=icon("fire")),
+                 menuItem("Heatmap (Car Count Only)", tabName='base_Heatmap',icon=icon("fire")),
                  hidden(
                    sliderInput(
                      "heatDateTime", label = "Choose Date Range:",
@@ -303,6 +303,19 @@ server <- function(input, output, session) {
       shinyjs::show("displayCorrection")
       shinyjs::show("displayImage")
     } 
+    else if (input$sidemenu== 'help'){
+      shinyjs::hide("heatDateTime")
+      shinyjs::hide("neighbourhood_names")
+      shinyjs::hide("timeRange")
+      shinyjs::hide("dateRange")
+      shinyjs::hide("camid")
+      shinyjs::hide("vehicleType")
+      shinyjs::hide("amHour")
+      shinyjs::hide("pmHour")
+      shinyjs::hide("displayCorrection")
+      shinyjs::hide("displayImage")
+      
+    }
     else {
       shinyjs::show("heatDateTime")
       shinyjs::hide("neighbourhood_names")
