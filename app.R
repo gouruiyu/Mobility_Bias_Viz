@@ -32,6 +32,8 @@ cams_sf <- cams %>% st_as_sf(coords = c("longitude", "latitude"), crs = 4326)
 neighbourhood<-readBoundaries('data/surrey_city_boundary.json')
 bike_routes <- st_read("data/bikeroutes_in_4326.geojson", quiet = TRUE) %>%
   st_transform(crs = 4326)
+heatmap_df<-render.daily(cams_data,cams)
+
 #sort by neighbourhood
 neighbourhood_names <- neighbourhood$NAME %>%
   as.character(.) %>%
@@ -98,6 +100,46 @@ basemap <- leaflet(data = cams, options = leafletOptions(minZoom = ZOOM_MIN, max
   addMarkers(data=services, layerId = ~CompanyID, label = ~as.character(BusinessName),icon= serviceIcon,group= "Services",
              clusterOptions = markerClusterOptions(showCoverageOnHover = FALSE))
 
+baseHeatmap <- leaflet(options = leafletOptions(minZoom = ZOOM_MIN, maxZoom = ZOOM_MAX)) %>%
+  setView(lng = SURREY_LNG, lat = SURREY_LAT, zoom = (ZOOM_MIN+ZOOM_MAX)/2) %>%
+  addProviderTiles(providers$CartoDB.DarkMatter)%>%
+  addLegend("topleft",
+            colors = BIKE_COLOR_LEGEND,
+            labels= BIKE_LABELS,
+            title= "Bike Lane Type",
+            group="Bike Routes")%>%
+  addLayersControl(
+    position = "bottomright",
+    overlayGroups = c("Stores",
+                      "Food and Restaurants",
+                      "Liquor Stores",
+                      "Health and Medicine",
+                      "Business and Finance",
+                      "Services",
+                      "Bike Routes",
+                      "Nearby Cams"),
+    options=layersControlOptions(collapsed = TRUE))%>%
+  hideGroup(c("Stores",
+              "Food and Restaurants",
+              "Liquor Stores",
+              "Health and Medicine",
+              "Business and Finance",
+              "Services",
+              "Bike Routes",
+              "Nearby Cams")) %>%
+  addMarkers(data=stores, layerId = ~CompanyID, label = ~as.character(BusinessName),icon= storeIcon,group="Stores",clusterOptions = markerClusterOptions(maxClusterRadius = 30,showCoverageOnHover = FALSE))%>%
+  addMarkers(data=food.and.restaurant, layerId = ~CompanyID, label = ~as.character(BusinessName), icon=restaurantIcon, group= "Food and Restaurants",clusterOptions = markerClusterOptions(maxClusterRadius = 30,showCoverageOnHover = FALSE))%>%
+  addMarkers(data=alcohol, layerId = ~CompanyID, label = ~as.character(BusinessName), icon= liquorIcon, group= "Liquor Stores",clusterOptions = markerClusterOptions(maxClusterRadius = 30,showCoverageOnHover = FALSE))%>%
+  addMarkers(data=health_medicine, layerId = ~CompanyID, label = ~as.character(BusinessName),icon= healthIcon, group= "Health and Medicine",clusterOptions = markerClusterOptions(maxClusterRadius = 30,showCoverageOnHover = FALSE))%>%
+  addMarkers(data=finances, layerId = ~CompanyID, label = ~as.character(BusinessName),icon= bizIcon, group="Business and Finance",clusterOptions = markerClusterOptions(maxClusterRadius = 30,showCoverageOnHover = FALSE))%>%
+  addMarkers(data=services, layerId = ~CompanyID, label = ~as.character(BusinessName),icon= serviceIcon,group= "Services",
+             clusterOptions = markerClusterOptions(showCoverageOnHover = FALSE))%>%
+  addPolygons(data=bike_routes,weight = 4, color = ~palBike(BIKE_INFRASTRUCTURE_TYPE), opacity=0.3,fill = FALSE,
+              group="Bike Routes")
+
+
+
+
 plotVehicleCountWithTime <- function(df, dateRange, timeRange, vehicleType, weekdayOnly, displayCorrection=FALSE) {
   if (nrow(df) == 0) {
     return(ggplot() + # Draw ggplot2 plot with text only
@@ -146,9 +188,18 @@ plotVehicleCountWithTime <- function(df, dateRange, timeRange, vehicleType, week
 ui <- dashboardPage(
   dashboardHeader(title = "Unbiased Mobility"),
   dashboardSidebar(
-    # useShinyjs(),
+    useShinyjs(),
     sidebarMenu( id = "sidemenu",
       menuItem("Cam Map", tabName = "basemap", icon = icon("camera")),
+      menuItem("Heatmap(Car Count Only)", tabName='base_Heatmap',icon=icon("camera")),
+      hidden(
+        sliderInput(
+          "heatDateTime", label = "Choose Date Range:",
+          min = as.POSIXct("2020-12-01 00:00:00"),
+          max = as.POSIXct("2020-12-31 23:59:59"),
+          value = c(as.POSIXct("2020-12-01 00:00:00"),as.POSIXct("2020-12-01 01:00:00")),
+          timeFormat = "%Y-%m-%d %H:%M", timezone='PST',ticks = T, dragRange = FALSE, step=2000, animate = T
+        )),
       menuItem("Help", tabName = "help", icon = icon("question-circle")),
       menuItem("User Inputs", tabName = "userInputs", icon = icon("user")),
       selectInput(
@@ -228,7 +279,8 @@ ui <- dashboardPage(
               )
     ),
     tabItem(tabName = "help",
-            includeMarkdown("help.md"))
+            includeMarkdown("help.md")),
+    tabItem("base_Heatmap", div(class = "outer", leafletOutput("heatmap", width = "100%", height = "100%")))
   )
 ))
 
@@ -236,6 +288,38 @@ ui <- dashboardPage(
 
 server <- function(input, output, session) {
   output$basemap <- renderLeaflet(basemap)
+  output$heatmap <- renderLeaflet(baseHeatmap)
+  
+  # dynamically show/hide userInputs in the sidebarMenu
+  observeEvent(input$sidemenu, {
+    if (input$sidemenu == "userInputs" | input$sidemenu=='basemap') {
+      shinyjs::hide("heatDateTime")
+      shinyjs::show("neighbourhood_names")
+      shinyjs::show("timeRange")
+      shinyjs::show("dateRange")
+      shinyjs::show("camid")
+      shinyjs::show("vehicleType")
+      shinyjs::show("amHour")
+      shinyjs::show("pmHour")
+      shinyjs::show("displayCorrection")
+      shinyjs::show("displayImage")
+    } 
+    else {
+      shinyjs::show("heatDateTime")
+      shinyjs::hide("neighbourhood_names")
+      shinyjs::hide("timeRange")
+      shinyjs::hide("dateRange")
+      shinyjs::hide("camid")
+      shinyjs::hide("vehicleType")
+      shinyjs::hide("amHour")
+      shinyjs::hide("pmHour")
+      shinyjs::hide("displayCorrection")
+      shinyjs::hide("displayImage")
+      
+    }
+  })
+  
+  
   #select boundaries
   observeEvent(input$neighbourhood_names,{
     req(input$neighbourhood_names)
@@ -482,7 +566,7 @@ server <- function(input, output, session) {
   
   #heatmap values based on user's input 
   filtered_hm <- reactive({
-    heatmap_data[heatmap_data$time >= input$heatDateTime[1] & heatmap_data$time <= input$heatDateTime[2], ]
+    heatmap_df[heatmap_df$time >= input$heatDateTime[1] & heatmap_df$time <= input$heatDateTime[2], ]
     
   })
   
@@ -490,7 +574,7 @@ server <- function(input, output, session) {
   observeEvent(input$heatDateTime,
     {
       hmdff <- filtered_hm()
-      leafletProxy("baseHeatmap", data = hmdff) %>%
+      leafletProxy("heatmap", data = hmdff) %>%
         clearHeatmap() %>%
         addHeatmap(
           lng = ~hmdff$longitude,
@@ -501,6 +585,8 @@ server <- function(input, output, session) {
           intensity = ~hmdff$car_count,
           gradient = "OrRd")
     })
+  
+  
   
 }
 
