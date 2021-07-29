@@ -34,12 +34,12 @@ In general the app uses the two maps for its basemap. The Positron and the Dark 
 ### Business Overlays
 
 There are 6 business overlays included in this application. All of them are clustered into groups. Those are: 
-*Stores
-*Foods and Restaurants
-*Liquor Stores
-*Health and Medicine
-*Businesses and Finance
-*Services. 
+-Stores
+-Foods and Restaurants
+-Liquor Stores
+-Health and Medicine
+-Businesses and Finance
+-Services. 
 Services are a vague term to encorporate businesses that are not categorized into the other 5 categories.  This does not include home based businesses.  As the map is zoomed in, the clusters become more dispersed and each individual business icon is shown more in detail. In order to view the name of the business, the cursor must be hovered ontop of the icon. 
 
 ### Heatmap
