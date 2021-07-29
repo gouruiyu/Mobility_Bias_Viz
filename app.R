@@ -579,7 +579,7 @@ server <- function(input, output, session) {
         addHeatmap(
           lng = ~hmdff$longitude,
           lat = ~hmdff$latitude,
-          max =15,
+          max = max(hmdff$car_count),
           radius = 5,
           blur = 3,
           intensity = ~hmdff$car_count,
