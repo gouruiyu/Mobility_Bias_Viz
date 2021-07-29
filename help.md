@@ -29,7 +29,7 @@ Notice that the current used one is a preliminary version only effective to car 
 ### Rush Hours Comparison
 
 ## UI Features 
-In general the app uses the two maps for its basemap. The Positron and the Dark Matter basemaps found (here)[https://carto.com/blog/getting-to-know-positron-and-dark-matter/]. The Positron map is used in the Camera Map menu to assist users to street names and routes while the DarkMatter map is used to assist in heatmap visualization in order to predict traffic patterns.
+In general the app uses the two maps for its basemap. The Positron and the Dark Matter basemaps found [here](https://carto.com/blog/getting-to-know-positron-and-dark-matter/). The Positron map is used in the Camera Map menu to assist users to street names and routes while the DarkMatter map is used to assist in heatmap visualization in order to predict traffic patterns.
 
 ### Business Overlays
 
