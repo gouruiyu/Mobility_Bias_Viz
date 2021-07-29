@@ -20,7 +20,7 @@ source("camera_img.R")
 source("stats/undercount_model.R")
 source("readBoundaries.R")
 source("bikevars.R") #BIKE_COLOR_LEGEND, BIKE_LABLES & palBike  variables used
-
+source('heatmap_function.R')
 
 # Feature toggle
 MULTI_SELECT_TOGGLE = TRUE
@@ -478,6 +478,30 @@ server <- function(input, output, session) {
       tags$div(tags$img(src = img_URI, width = 300))
     }
   })
+
+  
+  #heatmap values based on user's input 
+  filtered_hm <- reactive({
+    heatmap_data[heatmap_data$time >= input$heatDateTime[1] & heatmap_data$time <= input$heatDateTime[2], ]
+    
+  })
+  
+  #heatmap
+  observeEvent(input$heatDateTime,
+    {
+      hmdff <- filtered_hm()
+      leafletProxy("baseHeatmap", data = hmdff) %>%
+        clearHeatmap() %>%
+        addHeatmap(
+          lng = ~hmdff$longitude,
+          lat = ~hmdff$latitude,
+          max =15,
+          radius = 5,
+          blur = 3,
+          intensity = ~hmdff$car_count,
+          gradient = "OrRd")
+    })
+  
 }
 
 shinyApp(ui = ui, server = server)
