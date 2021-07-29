@@ -2,6 +2,7 @@ library(shiny)
 library(shinydashboard)
 library(shinyWidgets)
 library(shinyjs)
+library(shinyjqui)
 library(leaflet)
 library(sf)
 library(tidyr)
@@ -71,7 +72,7 @@ basemap <- leaflet(data = cams, options = leafletOptions(minZoom = ZOOM_MIN, max
   setView(lng = SURREY_LNG, lat = SURREY_LAT, zoom = (ZOOM_MIN+ZOOM_MAX)/2) %>%
   addMarkers(~longitude, ~latitude, layerId = ~as.character(station_name), label = ~as.character(station_name), icon = camIcon) %>%
   addProviderTiles(providers$CartoDB.Positron)%>%
-  addLegend("topleft",
+  leaflet::addLegend("topleft",
             colors = BIKE_COLOR_LEGEND,
             labels= BIKE_LABELS,
             title= "Bike Lane Type",
@@ -250,24 +251,27 @@ ui <- dashboardPage(
                   tags$head(includeCSS("styles.css")),
                   leafletOutput("basemap", width = "100%", height = "100%"),
                   absolutePanel(id = "controls", class = "panel panel-default", fixed = TRUE,
-                                draggable = TRUE, top = 60, left = "auto", right = 20, bottom = "auto",
-                                width = 500, height = "auto",
+                                draggable = TRUE, top = 60, left = "auto", right = 60, bottom = "auto",
+                                width = "fit-content", height = "auto",
                                 box(
                                   title = "Traffic Explorer",
                                   materialSwitch("weekdayOnly", label = "Weekdays Only", status = "primary", inline = TRUE, value = FALSE),
                                   materialSwitch("displayCorrection", label = "Correct for Undercount", status = "primary", inline = TRUE, value = FALSE),
-                                  plotOutput("linePlotVehicleCounts", height = "200"),
+                                  jqui_resizable(plotOutput("linePlotVehicleCounts", height = "200")),
                                   collapsible = T,
-                                  width = "100%", height = "auto"
-                                ),
+                                  width = "fit-content", height = "auto"
+                                )),
+                  jqui_resizable(absolutePanel(id = "comparison", class = "panel panel-default", fixed = TRUE,
+                                draggable = TRUE, top = 400, left = "auto", right = 60, bottom = "auto",
+                                width = "300px", height = "auto",
                                 box(
                                   title = "Same-intersection & Nearest-neighbor Cameras' Car Count Comparisons(AM VS PM)",
                                   DT::dataTableOutput("ampmPairTable"),
                                   collapsible = T,
                                   width = "100%", height = "auto"
-                                )
-                  )
-              ),
+
+                                )))
+                  ),
               absolutePanel(id = "camera_img",
                             draggable = TRUE, top = "auto", left = "auto" , right = "auto", bottom = 20,
                             width = 300, height = "auto",
