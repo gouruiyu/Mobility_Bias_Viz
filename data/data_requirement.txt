@@ -6,6 +6,10 @@ surrey_data.csv
 
 surrey_desc.csv
 
+bikeroutes_in_4326.geojson
+
+surrey_city_boundary.json
+
 car_detected_vs_counted.csv:
     Columns: 4
   $ datetime <chr> "2021-05-02 17:01:11-07:00", "2021-05-02 17:03:10-07:00", "2021-05-02 17:05:10-07…
