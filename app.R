@@ -1,3 +1,4 @@
+
 library(shiny)
 library(shinydashboard)
 library(shinyWidgets)
@@ -54,7 +55,7 @@ cam_icon_highlight <- makeAwesomeIcon(icon = 'camera', markerColor = 'red')
 
 # Other Constants
 NEIGHBOURHOODS <- c("CITY CENTRE", "CLOVERDALE", "FLEETWOOD", "GUILDFORD",
-                         "NEWTON", "SOUTH SURREY", "WHALLEY")
+                    "NEWTON", "SOUTH SURREY", "WHALLEY")
 VEHICLE_TYPES_NAME <- c("Car", "Truck", "Bus", "Bicycle", "Motorcycle", "Person")
 VEHICLE_TYPES <- c("car_count", "truck_count", "bus_count", "bicycle_count", "motorcycle_count", "person_count")
 SURREY_LAT <- 49.15
@@ -116,8 +117,7 @@ baseHeatmap <- leaflet(options = leafletOptions(minZoom = ZOOM_MIN, maxZoom = ZO
                       "Health and Medicine",
                       "Business and Finance",
                       "Services",
-                      "Bike Routes",
-                      "Nearby Cams"),
+                      "Bike Routes"),
     options=layersControlOptions(collapsed = TRUE))%>%
   hideGroup(c("Stores",
               "Food and Restaurants",
@@ -125,8 +125,7 @@ baseHeatmap <- leaflet(options = leafletOptions(minZoom = ZOOM_MIN, maxZoom = ZO
               "Health and Medicine",
               "Business and Finance",
               "Services",
-              "Bike Routes",
-              "Nearby Cams")) %>%
+              "Bike Routes")) %>%
   addMarkers(data=stores, layerId = ~CompanyID, label = ~as.character(BusinessName),icon= storeIcon,group="Stores",clusterOptions = markerClusterOptions(maxClusterRadius = 30,showCoverageOnHover = FALSE))%>%
   addMarkers(data=food.and.restaurant, layerId = ~CompanyID, label = ~as.character(BusinessName), icon=restaurantIcon, group= "Food and Restaurants",clusterOptions = markerClusterOptions(maxClusterRadius = 30,showCoverageOnHover = FALSE))%>%
   addMarkers(data=alcohol, layerId = ~CompanyID, label = ~as.character(BusinessName), icon= liquorIcon, group= "Liquor Stores",clusterOptions = markerClusterOptions(maxClusterRadius = 30,showCoverageOnHover = FALSE))%>%
@@ -173,7 +172,7 @@ plotVehicleCountWithTime <- function(df, dateRange, timeRange, vehicleType, week
     theme(axis.text.x = element_text(angle = 60, hjust = 1), legend.position="bottom")
   
   if (!displayCorrection) {
-     myplot <- myplot +
+    myplot <- myplot +
       geom_point()
   } else {
     # Bias corrected line
@@ -190,48 +189,48 @@ ui <- dashboardPage(
   dashboardSidebar(
     useShinyjs(),
     sidebarMenu( id = "sidemenu",
-      menuItem("Cam Map", tabName = "basemap", icon = icon("camera")),
-      menuItem("Heatmap(Car Count Only)", tabName='base_Heatmap',icon=icon("camera")),
-      hidden(
-        sliderInput(
-          "heatDateTime", label = "Choose Date Range:",
-          min = as.POSIXct("2020-12-01 00:00:00"),
-          max = as.POSIXct("2020-12-31 23:59:59"),
-          value = c(as.POSIXct("2020-12-01 00:00:00"),as.POSIXct("2020-12-01 01:00:00")),
-          timeFormat = "%Y-%m-%d %H:%M", timezone='PST',ticks = T, dragRange = FALSE, step=2000, animate = T
-        )),
-      menuItem("Help", tabName = "help", icon = icon("question-circle")),
-      menuItem("User Inputs", tabName = "userInputs", icon = icon("user")),
-      selectInput(
-        "neighbourhood_names",
-        label = "Select a Neighbourhood:",
-        choices=(neighbourhood_names),
-        selected= "SURREY"
-      ),
-      selectInput(inputId = "camid",
-                  label = "Camera ID",
-                  choices = cams$station_name,
-                  multiple = FALSE),
-      sliderInput(
-        "dateRange", label = "Choose Date Range:",
-        min = as.POSIXct("2020-12-01 00:00:00"),
-        max = as.POSIXct("2020-12-31 23:59:59"),
-        value = c(as.POSIXct("2020-12-01 00:00:00"),as.POSIXct("2020-12-07 23:59:59")),
-        timeFormat = "%F", ticks = F, animate = T
-      ),
-      sliderInput(
-        "timeRange", label = "Choose Time Range:",
-        min = as.POSIXct("2020-12-01 00:00:00"),
-        max = as.POSIXct("2020-12-01 23:59:59"),
-        value = c(as.POSIXct("2020-12-01 00:00:00"), as.POSIXct("2020-12-01 23:59:59")),
-        timeFormat = "%T", ticks = F, animate = T, timezone = "-0800"
-      ),
-      actionBttn(inputId = "amHour", label = "AM Hours", color = "primary", style = "fill"),
-      actionBttn(inputId = "pmHour", label = "PM Hours", color = "primary", style = "fill"),
-      radioButtons("vehicleType", "Vehicle Type:", choiceNames = VEHICLE_TYPES_NAME,
-                   choiceValues = VEHICLE_TYPES),
-      materialSwitch("displayImage", label = "Display Real-time Image", value = TRUE, width = "100%", status = "primary")
-     )
+                 menuItem("Cam Map", tabName = "basemap", icon = icon("camera")),
+                 menuItem("Heatmap(Car Count Only)", tabName='base_Heatmap',icon=icon("camera")),
+                 hidden(
+                   sliderInput(
+                     "heatDateTime", label = "Choose Date Range:",
+                     min = as.POSIXct("2020-12-01 00:00:00"),
+                     max = as.POSIXct("2020-12-31 23:59:59"),
+                     value = c(as.POSIXct("2020-12-15 17:00:00"),as.POSIXct("2020-12-15 18:00:00")),
+                     timeFormat = "%Y-%m-%d %H:%M",ticks = T, dragRange = FALSE, step=2000, animate = T
+                   )),
+                 menuItem("Help", tabName = "help", icon = icon("question-circle")),
+                 menuItem("User Inputs", tabName = "userInputs", icon = icon("user")),
+                 selectInput(
+                   "neighbourhood_names",
+                   label = "Select a Neighbourhood:",
+                   choices=(neighbourhood_names),
+                   selected= "SURREY"
+                 ),
+                 selectInput(inputId = "camid",
+                             label = "Camera ID",
+                             choices = cams$station_name,
+                             multiple = FALSE),
+                 sliderInput(
+                   "dateRange", label = "Choose Date Range:",
+                   min = as.POSIXct("2020-12-01 00:00:00"),
+                   max = as.POSIXct("2020-12-31 23:59:59"),
+                   value = c(as.POSIXct("2020-12-01 00:00:00"),as.POSIXct("2020-12-07 23:59:59")),
+                   timeFormat = "%F", ticks = F, animate = T
+                 ),
+                 sliderInput(
+                   "timeRange", label = "Choose Time Range:",
+                   min = as.POSIXct("2020-12-01 00:00:00"),
+                   max = as.POSIXct("2020-12-01 23:59:59"),
+                   value = c(as.POSIXct("2020-12-01 00:00:00"), as.POSIXct("2020-12-01 23:59:59")),
+                   timeFormat = "%T", ticks = F, animate = T, timezone = "-0800"
+                 ),
+                 actionBttn(inputId = "amHour", label = "AM Hours", color = "primary", style = "fill"),
+                 actionBttn(inputId = "pmHour", label = "PM Hours", color = "primary", style = "fill"),
+                 radioButtons("vehicleType", "Vehicle Type:", choiceNames = VEHICLE_TYPES_NAME,
+                              choiceValues = VEHICLE_TYPES),
+                 materialSwitch("displayImage", label = "Display Real-time Image", value = TRUE, width = "100%", status = "primary")
+    )
   ),
   dashboardBody(
     tabItems(
@@ -256,33 +255,33 @@ ui <- dashboardPage(
                                   collapsible = T,
                                   width = "100%", height = "auto"
                                 )
-                                )
-                  ),
+                  )
+              ),
               absolutePanel(id = "camera_img",
                             draggable = TRUE, top = "auto", left = "auto" , right = "auto", bottom = 20,
                             width = 300, height = "auto",
                             uiOutput("image", height="auto")),
               absolutePanel(id = "bizs_cams_radius",
-                draggable = TRUE, top = 55, left = "auto" , right = "auto", bottom = "auto",
-                width = 300, height = "auto",
-                dropdownButton(
-                  actionButton(inputId = "recalc_radius", label = "Go"),
-                  sliderInput(inputId = 'cams_radius',
-                              label = 'Radius',
-                              value = 1000,
-                              min = 0,
-                              max = 3000),
-                  circle = TRUE, status = "danger",
-                  icon = icon("gear"), width = "300px",
-                  tooltip = tooltipOptions(title = "Specify radius for nearby cameras")
-                ),
+                            draggable = TRUE, top = 55, left = "auto" , right = "auto", bottom = "auto",
+                            width = 300, height = "auto",
+                            dropdownButton(
+                              actionButton(inputId = "recalc_radius", label = "Go"),
+                              sliderInput(inputId = 'cams_radius',
+                                          label = 'Radius',
+                                          value = 1000,
+                                          min = 0,
+                                          max = 3000),
+                              circle = TRUE, status = "danger",
+                              icon = icon("gear"), width = "300px",
+                              tooltip = tooltipOptions(title = "Specify radius for nearby cameras")
+                            ),
               )
-    ),
-    tabItem(tabName = "help",
-            includeMarkdown("help.md")),
-    tabItem("base_Heatmap", div(class = "outer", leafletOutput("heatmap", width = "100%", height = "100%")))
-  )
-))
+      ),
+      tabItem(tabName = "help",
+              includeMarkdown("help.md")),
+      tabItem("base_Heatmap", div(class = "outer", leafletOutput("heatmap", width = "100%", height = "100%")))
+    )
+  ))
 
 ########## Server ##########
 
@@ -346,7 +345,7 @@ server <- function(input, output, session) {
   
   # current selected business
   current_biz <- reactiveValues(id = NULL, data = NULL, lat = NULL, lng = NULL)
-
+  
   # current selected camera
   current_cam <- reactiveValues(id = NULL, data = NULL, lat = NULL, lng = NULL)
   selected_cams <- reactiveValues(ids = c(), data = c())
@@ -358,7 +357,7 @@ server <- function(input, output, session) {
   
   # current map center
   map_view <- reactiveValues()
-
+  
   # highlight current selected cam marker
   proxy <- leafletProxy('basemap')
   proxy_business <- leafletProxy('basemap')
@@ -389,10 +388,10 @@ server <- function(input, output, session) {
     nn_cams_df <- nn_cams_df %>%
       mutate(lng = unlist(map(nn_cams_df$geometry, 1)),
              lat = unlist(map(nn_cams_df$geometry, 2)))
-
+    
     req(nn_cams_df)
     nn_cameras$ids <- nn_cams_df$station_name
-
+    
     proxy_business %>%
       clearGroup("Nearby Cams")
     if (nrow(nn_cams_df) == 0) {
@@ -439,7 +438,7 @@ server <- function(input, output, session) {
     }
     
     current_cam$id <- marker$id
-
+    
     if (marker$id %in% selected_cams$ids) {
       selected_cams$ids <- selected_cams$ids[selected_cams$ids != marker$id]
       proxy %>%
@@ -483,19 +482,19 @@ server <- function(input, output, session) {
             lng = map_view$lng,
             lat = map_view$lat,
             zoom = map_view$zoom)
-
+    
     # print(selected_cams$ids)
     if (current_cam$id %in% selected_cams$ids) {
-        proxy %>%
-          addAwesomeMarkers(label=as.character(current_cam$id),
-                            layerId = as.character(current_cam$id),
-                            lng=current_cam$lng,
-                            lat=current_cam$lat,
-                            icon = cam_icon_highlight)
+      proxy %>%
+        addAwesomeMarkers(label=as.character(current_cam$id),
+                          layerId = as.character(current_cam$id),
+                          lng=current_cam$lng,
+                          lat=current_cam$lat,
+                          icon = cam_icon_highlight)
     }
     # print(selected_cams$ids)
   })
-
+  
   # Update data to display
   observeEvent(selected_cams$ids, {selected_cams$data <- cams_data %>% filter(station %in% selected_cams$ids)})
   
@@ -507,14 +506,14 @@ server <- function(input, output, session) {
   prev_selected_groups <- reactiveVal(NULL)
   # Toggle on/off the line plot for Nearby Cams
   show_nn_cameras <- reactiveVal(FALSE)
-
+  
   # Layer Control for Nearby Cams
   observeEvent(input$basemap_groups, {
     selected_groups <- req(input$basemap_groups)
     print(is.null(prev_selected_groups()))
     print(prev_selected_groups())
     print(selected_groups)
-
+    
     if (!is.null(prev_selected_groups())) {
       if ("Nearby Cams" %in% selected_groups & (prev_selected_groups() == c("Nearby Cams") | "Nearby Cams" %notin% prev_selected_groups())) {
         show_nn_cameras(TRUE)
@@ -536,7 +535,7 @@ server <- function(input, output, session) {
                                  input$weekdayOnly,
                                  input$displayCorrection)
       } else {
-       plotVehicleCountWithTime(selected_cams$data, 
+        plotVehicleCountWithTime(selected_cams$data, 
                                  as.POSIXct(format(input$dateRange, "%Y-%m-%d")),
                                  input$timeRange,
                                  input$vehicleType,
@@ -562,7 +561,7 @@ server <- function(input, output, session) {
       tags$div(tags$img(src = img_URI, width = 300))
     }
   })
-
+  
   
   #heatmap values based on user's input 
   filtered_hm <- reactive({
@@ -572,19 +571,19 @@ server <- function(input, output, session) {
   
   #heatmap
   observeEvent(input$heatDateTime,
-    {
-      hmdff <- filtered_hm()
-      leafletProxy("heatmap", data = hmdff) %>%
-        clearHeatmap() %>%
-        addHeatmap(
-          lng = ~hmdff$longitude,
-          lat = ~hmdff$latitude,
-          max = max(hmdff$car_count),
-          radius = 5,
-          blur = 3,
-          intensity = ~hmdff$car_count,
-          gradient = "OrRd")
-    })
+               {
+                 hmdff <- filtered_hm()
+                 leafletProxy("heatmap", data = hmdff) %>%
+                   clearHeatmap() %>%
+                   addHeatmap(
+                     lng = ~hmdff$longitude,
+                     lat = ~hmdff$latitude,
+                     max = max(hmdff$car_count),
+                     radius = 5,
+                     blur = 3,
+                     intensity = ~hmdff$car_count,
+                     gradient = "OrRd")
+               })
   
   
   
