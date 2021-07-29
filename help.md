@@ -29,15 +29,16 @@ Notice that the current used one is a preliminary version only effective to car 
 ### Rush Hours Comparison
 
 ## UI Features 
+In general the app uses the two maps for its basemap. The Positron and the Dark Matter basemaps found (here)[https://carto.com/blog/getting-to-know-positron-and-dark-matter/]. The Positron map is used in the Camera Map menu to assist users to street names and routes while the DarkMatter map is used to assist in heatmap visualization in order to predict traffic patterns.
 
 ### Business Overlays
 
-There are 6 business overlays included in this application. All of them are clustered into groups. Those are: Stores, Foods and Restaurants, Liquor Stores, Health and Medicine, Businesses and Finance, and Services. Services are a vague term to encorporate businesses that are not categorized into the other 5 categories.  This does not include home based businesses.  As the map is zoomed in, each individual business is shown in more detail. In order to view the name of the business, the cursor must be hovered ontop of the icon. 
+There are 6 business overlays included in this application. All of them are clustered into groups. Those are: Stores, Foods and Restaurants, Liquor Stores, Health and Medicine, Businesses and Finance, and Services. Services are a vague term to encorporate businesses that are not categorized into the other 5 categories.  This does not include home based businesses.  As the map is zoomed in, the clusters become more dispersed and each individual business icon is shown more in detail. In order to view the name of the business, the cursor must be hovered ontop of the icon. 
 
 ### Heatmap
 
-An overlay of a heatmap is provided on the sidebar to the left. As of now, the heatmap only displays car count. 
-The slider ranges from `2020-12-01 00:00 to 2020-12-31 23:59`. Each tick within the slider represents a one hour change in the traffic pattern. All the overlays except the 'Nearby Cams' feature are functional when the heatmap is toggled. The intensity (also known as the color) of the heatmap is dependent on the volume of the car count in a camera locations. Car counts with higher traffic are highlighted in deep red while lower car counts are labelled in light peach. The interval leves are heuristically determined by the `addHeatmap()` function. An ongoing issue with the heatmap is that in higher traffic volumes, the heatmap flashes. Currently, this is a bug that will be hopefully solved soon.
+An overlay of a heatmap overlayed ontop of the basemap type DarkMatter is provided on the sidebar to the left. As of now, the heatmap only displays car count. 
+The slider ranges from `2020-12-01 00:00 to 2020-12-31 23:59`. Each tick within the slider represents a one hour change in the traffic pattern. All the overlays except the 'Nearby Cams' feature are functional when the heatmap is toggled. The intensity (also known as the color) of the heatmap is dependent on the volume of the car count in a camera locations. Car counts with higher traffic are highlighted in deep red while lower car counts are labelled in light peach. The interval levels are heuristically determined by the `addHeatmap()` function. An ongoing issue with the heatmap is that in higher traffic volumes, the heatmap flashes. Currently, this is a bug that will be hopefully solved soon.
 
 ### Bicyle Routes
 An overlay of bicycle routes is included in this application along with the overlay panels. Proposed bicycle routes are not included in this overlay. To view the bicycle routes, ensure that the label "Bike Routes " is checked. The bicycle routes are coloured in 7 types. This is shown in the legend listed in the top left corner. It is important to note that the legend is partially hidden from the menu and is undraggable. In order to fully view the legend, the panel (with  the 3 bars) must be collapsed.
