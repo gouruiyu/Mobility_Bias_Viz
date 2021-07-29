@@ -423,17 +423,19 @@ server <- function(input, output, session) {
   # Layer Control for Nearby Cams
   observeEvent(input$basemap_groups, {
     selected_groups <- req(input$basemap_groups)
-    print(is.null(prev_selected_groups()))
-    print(prev_selected_groups())
-    print(selected_groups)
+    # print(is.null(prev_selected_groups()))
+    # print(prev_selected_groups())
+    # print(selected_groups)
 
     if (!is.null(prev_selected_groups())) {
-      if (length(selected_groups) > 1 & "Nearby Cams" %in% selected_groups & (prev_selected_groups() == c("Nearby Cams") | "Nearby Cams" %notin% prev_selected_groups())) {
+      if (length(selected_groups) > 1 && "Nearby Cams" %in% selected_groups && (prev_selected_groups() == c("Nearby Cams") | "Nearby Cams" %notin% prev_selected_groups())) {
+        print("Nearby Cams" %in% selected_groups)
         show_nn_cameras(TRUE)
         prev_selected_groups(selected_groups)
         return()
       }
     }
+    print("Nearby Cams" %in% selected_groups)
     proxy_business %>%
       clearGroup("Nearby Cams")
     nn_cameras$ids <- NULL
