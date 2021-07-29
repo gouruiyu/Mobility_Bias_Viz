@@ -207,9 +207,9 @@ ui <- dashboardPage(
                    sliderInput(
                      "heatDateTime", label = "Choose Date Range:",
                      min = as.POSIXct("2020-12-01 00:00:00"),
-                     max = as.POSIXct("2020-12-31 23:59:59"),
-                     value = c(as.POSIXct("2020-12-15 17:00:00"),as.POSIXct("2020-12-15 18:00:00")),
-                     timeFormat = "%Y-%m-%d %H:%M",ticks = T, dragRange = FALSE, step=2000, animate = T
+                     max = as.POSIXct("2020-12-31 23:59:59") - hours(1),
+                     value = as.POSIXct("2020-12-15 17:00:00"),
+                     timeFormat = "%Y-%m-%d %H:%M", ticks = T, step=3600, animate = T
                    )),
                  menuItem("Help", tabName = "help", icon = icon("question-circle")),
                  menuItem("User Inputs", tabName = "userInputs", icon = icon("user")),
@@ -597,8 +597,7 @@ server <- function(input, output, session) {
   
   #heatmap values based on user's input 
   filtered_hm <- reactive({
-    heatmap_df[heatmap_df$time >= input$heatDateTime[1] & heatmap_df$time <= input$heatDateTime[2], ]
-    
+    heatmap_df[heatmap_df$time >= input$heatDateTime[1] & heatmap_df$time <= input$heatDateTime[1] + hours(1), ]
   })
   
   #heatmap
