@@ -34,6 +34,8 @@ bike_routes <- st_read("data/bikeroutes_in_4326.geojson", quiet = TRUE) %>%
   st_transform(crs = 4326)
 heatmap_df<-render.daily(cams_data,cams)
 
+hm_default.plot<-render.daily(cams_data,cams)%>%
+  filter(time >= '2020-12-15 17:00:00' & time<= '2020-12-15 18:00:00')
 #sort by neighbourhood
 neighbourhood_names <- neighbourhood$NAME %>%
   as.character(.) %>%
@@ -134,7 +136,16 @@ baseHeatmap <- leaflet(options = leafletOptions(minZoom = ZOOM_MIN, maxZoom = ZO
   addMarkers(data=services, layerId = ~CompanyID, label = ~as.character(BusinessName),icon= serviceIcon,group= "Services",
              clusterOptions = markerClusterOptions(showCoverageOnHover = FALSE))%>%
   addPolygons(data=bike_routes,weight = 4, color = ~palBike(BIKE_INFRASTRUCTURE_TYPE), opacity=0.3,fill = FALSE,
-              group="Bike Routes")
+              group="Bike Routes")%>%
+  addHeatmap(
+    data=hm_default.plot,
+    lng = ~hm_default.plot$longitude,
+    lat = ~hm_default.plot$latitude,
+    max = max(hm_default.plot$car_count),
+    radius = 5,
+    blur = 3,
+    intensity = ~hm_default.plot$car_count,
+    gradient = "OrRd")
 
 
 
