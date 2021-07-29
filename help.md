@@ -61,7 +61,7 @@ A selection of neighbourhoods is available for selection. The following neighbou
 -  South Surrey for `SOUTH SURREY`
 -  Whalley for `WHALLEY`
 
-The option panel is on the left hand side and it is titled "Select a Neighbourhood". The default selected is SURREY, where it displays all the neighbourhoods within the city of Surrey. When a neighbourhood is selected, the map will shift its view to the selected neighbourhood.
+The option panel is on the left hand side and it is titled "Select a Neighbourhood". The default selected is `SURREY`, where it displays all the neighbourhoods within the city of Surrey. When a neighbourhood is selected, the map will shift its view to the selected neighbourhood.
 
 
 
