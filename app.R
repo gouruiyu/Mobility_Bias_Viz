@@ -202,7 +202,7 @@ ui <- dashboardPage(
                                 )),
                   jqui_resizable(absolutePanel(id = "comparison", class = "panel panel-default", fixed = TRUE,
                                 draggable = TRUE, top = 400, left = "auto", right = 60, bottom = "auto",
-                                width = "300px", height = "auto",
+                                width = "377px", height = "auto",
                                 box(
                                   title = "Same-intersection & Nearest-neighbor Cameras' Car Count Comparisons(AM VS PM)",
                                   DT::dataTableOutput("ampmPairTable"),
