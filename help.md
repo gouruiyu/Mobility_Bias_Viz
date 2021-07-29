@@ -30,9 +30,13 @@ Notice that the current used one is a preliminary version only effective to car 
 
 ## UI Features 
 
+### Heatmap
+
+An overlay of a heatmap is provided on the sidebar to the left. As of now, the heatmap only displays car count. 
+The slider ranges from 2020-12-01 00:00 to 2020-12-31 23:59. In order to get optimal visualization of the graph, the time slider must be adjusted within a one hour time interval (± 5 minutes) within one day: (i.e moving the slider in the range 2020-12-15 14:30 to 2020-12-15 15:30)
+
 ### Bicyle Routes
 An overlay of bicycle routes is included in this application along with the overlay panels. To view the bicycle routes, ensure that the label "Bike Routes " is checked. The bicycle routes are coloured in 7 types. This is shown in the legend listed in the top left corner.
-
 
 ### Neighbourhood Filters 
 A selection of neighbourhoods is available for selection. The option panel is on the left hand side and it is titled "Select a Neighbourhood". The default selected is SURREY, where it displays all the neighbourhoods within the city of Surrey. When a neighbourhood is selected, the map will shift its view to the selected neighbourhood.
