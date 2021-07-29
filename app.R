@@ -1,4 +1,3 @@
-
 library(shiny)
 library(shinydashboard)
 library(shinyWidgets)
@@ -50,6 +49,7 @@ camIcon <- makeIcon(
   iconWidth = 20, iconHeight = 20,
   iconAnchorX = 10, iconAnchorY = 10
 )
+
 # highlighted icon style
 cam_icon_highlight <- makeAwesomeIcon(icon = 'camera', markerColor = 'red')
 
@@ -190,7 +190,7 @@ ui <- dashboardPage(
     useShinyjs(),
     sidebarMenu( id = "sidemenu",
                  menuItem("Cam Map", tabName = "basemap", icon = icon("camera")),
-                 menuItem("Heatmap(Car Count Only)", tabName='base_Heatmap',icon=icon("camera")),
+                 menuItem("Heatmap(Car Count Only)", tabName='base_Heatmap',icon=icon("fire")),
                  hidden(
                    sliderInput(
                      "heatDateTime", label = "Choose Date Range:",
