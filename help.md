@@ -1,3 +1,4 @@
+
 ## Unbiased Mobility Project
 **Hosted by:** The Data Science for Social Good (DSSG) program at the University of British Columbia
 
@@ -52,7 +53,15 @@ The slider ranges from `2020-12-01 00:00 to 2020-12-31 23:59`. Each tick within 
 An overlay of bicycle routes is included in this application along with the overlay panels. Proposed bicycle routes are not included in this overlay. To view the bicycle routes, ensure that the label "Bike Routes " is checked. The bicycle routes are coloured in 7 types. This is shown in the legend listed in the top left corner. It is important to note that the legend is partially hidden from the menu and is undraggable. In order to fully view the legend, the panel (with  the 3 bars) must be collapsed.
 
 ### Neighbourhood Filters 
-A selection of neighbourhoods is available for selection. The option panel is on the left hand side and it is titled "Select a Neighbourhood". The default selected is SURREY, where it displays all the neighbourhoods within the city of Surrey. When a neighbourhood is selected, the map will shift its view to the selected neighbourhood.
+A selection of neighbourhoods is available for selection. The following neighbourhoods are:
+-  City Centre for `CITY CENTRE` 
+-  Cloverdale for `CLOVERDALE`
+-  Fleetwood for `FLEETWOOD`
+-  Newton for `NEWTON`
+-  South Surrey for `SOUTH SURREY`
+-  Whalley for `WHALLEY`
+
+The option panel is on the left hand side and it is titled "Select a Neighbourhood". The default selected is SURREY, where it displays all the neighbourhoods within the city of Surrey. When a neighbourhood is selected, the map will shift its view to the selected neighbourhood.
 
 
 
