@@ -34,7 +34,8 @@ neighbourhood<-readBoundaries('data/surrey_city_boundary.json')
 bike_routes <- st_read("data/bikeroutes_in_4326.geojson", quiet = TRUE) %>%
   st_transform(crs = 4326)
 heatmap_df<-render.daily(cams_data,cams)
-
+heatmap_boundaries<-st_read('data/surrey.geojson')%>%
+  st_transform(crs = 4326)
 hm_default.plot<-render.daily(cams_data,cams)%>%
   filter(time >= '2020-12-15 17:00:00' & time<= '2020-12-15 18:00:00')
 #sort by neighbourhood
@@ -146,7 +147,9 @@ baseHeatmap <- leaflet(options = leafletOptions(minZoom = ZOOM_MIN, maxZoom = ZO
     radius = 5,
     blur = 3,
     intensity = ~hm_default.plot$car_count,
-    gradient = "OrRd")
+    gradient = "OrRd")%>%
+  addPolygons(data= heatmap_boundaries,color = "#ffffff", weight = 3, smoothFactor = 0.5,
+              fillOpacity = 0, opacity = 0.2)
 
 
 
