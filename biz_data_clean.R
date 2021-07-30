@@ -1,5 +1,6 @@
 bizs<-read.csv('data/all_businessess.csv')%>%
-  st_as_sf(coords = c("lon_pc", "lat_pc"), crs = 4326)
+  st_as_sf(coords = c("lon_pc", "lat_pc"), crs = 4326)%>%
+  filter(Status=='Active')
 
 # All-businesses company ids
 bizs_ids <- bizs$CompanyID
