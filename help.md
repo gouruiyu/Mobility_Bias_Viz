@@ -3,6 +3,7 @@
 **Hosted by:** The Data Science for Social Good (DSSG) program at the University of British Columbia
 
 **Sponsor:** Cedar Academy Society - VanCom Project
+**App Development:** Ruiyu Gou, Nancy Wan, Martin So
 
 Public sector and academic communities have been using mobility and traffic data as a proxy measurement for a variety of social topics, from GDP prediction and economic development to greenhouse gas emissions and environmental impact.
 
@@ -45,7 +46,7 @@ Overall, based on the December 2020's hourly data, there has been found a greate
 Notice that **camera metadata** is another key factor which may induce significant differences across cameras even when they are considered as a valid pair. Due to the lack of data, this could be potentially included as a future improvement.
 
 ## UI Features 
-In general the app uses the two maps for its basemap. The Positron and the Dark Matter basemaps found [here](https://carto.com/blog/getting-to-know-positron-and-dark-matter/). The Positron map is used in the Camera Map menu to assist users to street names and routes while the DarkMatter map is used to assist in heatmap visualization in order to predict traffic patterns.
+In general the app uses the two maps for its basemap. The Positron and the Dark Matter basemaps found [here](https://carto.com/blog/getting-to-know-positron-and-dark-matter/). The Positron map is used in the Camera Map menu to assist users to street names and routes while the DarkMatter map is used to assist in heatmap visualization in order to predict the change traffic patterns over time.
 
 ### Business Overlays
 
@@ -61,7 +62,8 @@ Services are a vague term to encorporate businesses that are not categorized int
 
 ### Heatmap
 
-An overlay of a heatmap overlayed ontop of the basemap type DarkMatter is provided on the sidebar to the left. As of now, the heatmap only displays car count. 
+An option to switch to the heatmap view is provided on the sidebar on the left labelled `Heatmap`. Similar to the basemap in the `Camera Map`, the heatmap has boundaries of all the neighbourhoods of Surrey. However unlike the boundaries found in `Camera Map`, where the user can filter out individual neighbourhoods, the boundaries for `Heatmap`is only fixed to the entire city of Surrey. As of now, the heatmap only displays car count. 
+
 The slider ranges from `2020-12-01 00:00 to 2020-12-31 23:59`. Each tick within the slider represents a one hour change in the traffic pattern. All the overlays except the 'Nearby Cams' feature are functional when the heatmap is toggled. The intensity (also known as the color) of the heatmap is dependent on the volume of the car count in a camera locations. Car counts with higher traffic are highlighted in deep red while lower car counts are labelled in light peach. The interval levels are heuristically determined by the `addHeatmap()` function. An ongoing issue with the heatmap is that in higher traffic volumes, the heatmap flashes. Currently, this is a bug that will be hopefully solved soon.
 
 ### Bicyle Routes
