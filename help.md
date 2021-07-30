@@ -59,7 +59,14 @@ There are 6 business overlays included in this application. All of them are clus
 -  Businesses and Finance
 -  Services.  
 
-Services are a vague term to encorporate businesses that are not categorized into the other 5 categories.  This does not include home based businesses.  As the map is zoomed in, the clusters become more dispersed and each individual business icon is shown more in detail. In order to view the name of the business, the cursor must be hovered ontop of the icon. 
+Services are a vague term to incorporate businesses that are not categorized into the other 5 categories.  This does not include home based businesses.  As the map is zoomed in, the clusters become more dispersed and each individual business icon is shown more in detail. In order to view the name of the business, the cursor must be hovered ontop of the icon. 
+
+### Nearby Cameras of Businesses
+
+As you may notice, there is another option in the business overlays' drop-down called "Nearby Cams". This toggle control will allow you to locate the nearby cameras upon selecting on a business marker and to view the traffic counts captured by them in the explorer panel. This is
+aimed to give user a brief understanding of the nearby traffic states.
+
+The range within which you wish to find nearby cameras can also be customized through the `red gear button` on the top left corner, and the radius is adjustable in **meters** through a slider input. Notice that the current maximum number of nearby cameras is set to default **3** (considering the basic usage), so the highlighted cameras will not exceed 3 however you adjust the radius. 
 
 ### Heatmap
 
