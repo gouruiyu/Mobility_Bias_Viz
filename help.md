@@ -2,7 +2,8 @@
 ## Unbiased Mobility Project
 **Hosted by:** The Data Science for Social Good (DSSG) program at the University of British Columbia
 
-**Sponsor:** Cedar Academy Society - VanCom Project
+**Sponsor:** Cedar Academy Society - VanCom Project  
+
 **App Development:** Ruiyu Gou, Nancy Wan, Martin So
 
 Public sector and academic communities have been using mobility and traffic data as a proxy measurement for a variety of social topics, from GDP prediction and economic development to greenhouse gas emissions and environmental impact.
