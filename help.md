@@ -40,11 +40,15 @@ The pair of **comparable** cameras are identified as either:
 
 **Note**: The nearest neighbor is not always symmetric, and the next-selected camera has to be the nearest neighbor to the prev-selected camera, i.e. if camera a's nearest neighbor is camera b, yet camera b's nearest neighbor is camera c, then you should select a then b to form a valid pair, but not the other way round.
 
-Our `Same-intersection & Nearest-neighbor Cameras' Car Count Comparison(AM VS PM)` feature keeps track of the current selected cameras and will perform a **paired**(same-intersection)/**two-sample**(nearest-neighbor) t-test of their car count over AM and PM rush hours within a specified date range **only if** they meet the requirements for comparable cameras above.
+Our `Same-intersection & Nearest-neighbor Cameras' Car Count Comparison(AM VS PM)` table feature keeps track of the current selected cameras and will perform and demonstrate the results of a **paired**(same-intersection)/**two-sample**(nearest-neighbor) t-test of the cameras' car count over AM and PM rush hours within a specified date range **only if** they meet the requirements for comparable cameras above. 
 
-Overall, based on the December 2020's hourly data, there has been found a greater difference during PM rush hours compared to AM. However, this may vary across different locations and requires further experiments with more data. 
+<p align="center">
+<img src="./help-images/comparison_table.png" raw=true alt="Comparison Table" style="width: 30%; height: auto; padding=30px"/>
+</p>
 
-Notice that **camera metadata** is another key factor which may induce significant differences across cameras even when they are considered as a valid pair. Due to the lack of data, this could be potentially included as a future improvement.
+Overall, based on the December 2020's hourly data, there has been found a **greater** difference during **PM** rush hours compared to AM. However, this may vary across different locations and requires further experiments with more data. 
+
+Notice that **camera metadata**(i.e. facing direction, angle, elevation) is another key factor which may induce significant differences across cameras even when they are considered as a valid pair. Due to the lack of data, this could be potentially included as a future improvement.
 
 ## UI Features 
 In general the app uses the two maps for its basemap. The Positron and the Dark Matter basemaps found [here](https://carto.com/blog/getting-to-know-positron-and-dark-matter/). The Positron map is used in the Camera Map menu to assist users to street names and routes while the DarkMatter map is used to assist in heatmap visualization in order to predict the change traffic patterns over time.
@@ -63,10 +67,15 @@ Services are a vague term to incorporate businesses that are not categorized int
 
 ### Nearby Cameras of Businesses
 
-As you may notice, there is another option in the business overlays' drop-down called "Nearby Cams". This toggle control will allow you to locate the nearby cameras upon selecting on a business marker and to view the traffic counts captured by them in the explorer panel. This is
+As you may notice, there is another option in the business overlays' drop-down called **"Nearby Cams"**. This toggle control will allow you to locate the nearby cameras upon selecting on a business marker and to view the traffic counts captured by them in the explorer panel. This is
 aimed to give user a brief understanding of the nearby traffic states.
 
-The range within which you wish to find nearby cameras can also be customized through the `red gear button` on the top left corner, and the radius is adjustable in **meters** through a slider input. Notice that the current maximum number of nearby cameras is set to default **3** (considering the basic usage), so the highlighted cameras will not exceed 3 however you adjust the radius. 
+The **range** within which you wish to find nearby cameras can also be customized through the `red gear button` on the top left corner, and the radius is adjustable in **meters** through a slider input. Notice that the current maximum number of nearby cameras is set to default **3** (considering the basic usage), so the highlighted cameras will not exceed 3 however you adjust the radius. 
+
+<p align="center">
+<img src="./help-images/biz_radius.png" raw=true alt="Adjust Radius" style="width: 30%; height: auto; padding: 30px;"/>
+<img src="./help-images/biz_nearby_cams.png" raw=true alt="Nearby Cams" style="width: 30%; height: auto; padding: 30px;"/>
+</p>
 
 ### Heatmap
 
