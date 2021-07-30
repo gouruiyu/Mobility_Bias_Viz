@@ -27,7 +27,22 @@ Our `Correct for Undercount` feature uses a model learned from manually labeled 
 
 Notice that the current used one is a preliminary version only effective to car counts. It is to be improved and generalized to other vehicle types in the future.
 
-### Rush Hours Comparison
+### Same-intersection and Nearest-neighbor Cameras' Comparison
+
+Another key objective of the app is to conduct comparisons over a pair of **comparable** cameras to see if they share a similar traffic flow(i.e. vehicles counts) concurrently. AM(7-10) and PM(16-19) rush hours are targeted due to intense traffic activities over the periods. 
+
+The pair of **comparable** cameras are identified as either:
+
+- Two cameras installed on the **same intersection**
+- Two cameras which are **spatial nearest neighbors**
+
+**Note**: The nearest neighbor is not always symmetric, and the next-selected camera has to be the nearest neighbor to the prev-selected camera, i.e. if camera a's nearest neighbor is camera b, yet camera b's nearest neighbor is camera c, then you should select a then b to form a valid pair, but not the other way round.
+
+Our `Same-intersection & Nearest-neighbor Cameras' Car Count Comparison(AM VS PM)` feature keeps track of the current selected cameras and will perform a **paired**(same-intersection)/**two-sample**(nearest-neighbor) t-test of their car count over AM and PM rush hours within a specified date range **only if** they meet the requirements for comparable cameras above.
+
+Overall, based on the December 2020's hourly data, there has been found a greater difference during PM rush hours compared to AM. However, this may vary across different locations and requires further experiments with more data. 
+
+Notice that **camera metadata** is another key factor which may induce significant differences across cameras even when they are considered as a valid pair. Due to the lack of data, this could be potentially included as a future improvement.
 
 ## UI Features 
 In general the app uses the two maps for its basemap. The Positron and the Dark Matter basemaps found [here](https://carto.com/blog/getting-to-know-positron-and-dark-matter/). The Positron map is used in the Camera Map menu to assist users to street names and routes while the DarkMatter map is used to assist in heatmap visualization in order to predict traffic patterns.
