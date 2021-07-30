@@ -17,7 +17,21 @@ Traffic camera snapshots are taken at each camera locations. Information of vehi
 Specifically, this pipeline uses the object detection system You Only Look Once, namely YOLO. It is one of the state-of-the-art detection model, known for being both accurate and fast. It detects different vehicles in the image with bounding boxes at the locations, then translate them into counts of objects of interest.
 
 
-### Undercounting Correction
+## UI Features 
+In general the app uses the two maps for its basemap. The Positron and the Dark Matter basemaps found [here](https://carto.com/blog/getting-to-know-positron-and-dark-matter/). The Positron map is used in the Camera Map menu to assist users to street names and routes while the DarkMatter map is used to assist in heatmap visualization in order to predict the change traffic patterns over time.
+
+### Cams Map
+
+#### Traffic Explorer
+The traffic explorer panel contains a line plot of `Vehicle Counts vs Time`. Users may choose to modify the input controls on the left side menu and select a camera station to view its traffic states under different conditions. 
+
+#### Multi-camera Selection
+The Cams Map now supports multi-camera selection and auto-focus on the currently selected camera. Users can select a new camera station either through the select input in the side menu or through a marker click, and can deselect by clicking on the highlighted marker again. 
+
+#### Real-time Camera Image Toggle
+TODO
+
+#### Undercounting Correction
 
 Traffic camera images, especially at busy intersections, suffer from high occlusion between vehicles and low resolution due to the hardware constraint. Current pipeline often fails to detect the semantic features when they interweave, thus is missing count when there is a long line-up. On the other hand, it is actually able to detect the vehicles correctly at far distance when traffic is free-of-flow since the cars are more apart. This leads to two consequences:
 
@@ -29,7 +43,7 @@ Our `Correct for Undercount` feature uses a model learned from manually labeled 
 
 Notice that the current used one is a preliminary version only effective to car counts. It is to be improved and generalized to other vehicle types in the future.
 
-### Same-intersection and Nearest-neighbor Cameras' Comparison
+#### Same-intersection and Nearest-neighbor Cameras' Comparison
 
 Another key objective of the app is to conduct comparisons over a pair of **comparable** cameras to see if they share a similar traffic flow(i.e. vehicles counts) concurrently. AM(7-10) and PM(16-19) rush hours are targeted due to intense traffic activities over the periods. 
 
@@ -50,10 +64,8 @@ Overall, based on the December 2020's hourly data, there has been found a **grea
 
 Notice that **camera metadata**(i.e. facing direction, angle, elevation) is another key factor which may induce significant differences across cameras even when they are considered as a valid pair. Due to the lack of data, this could be potentially included as a future improvement.
 
-## UI Features 
-In general the app uses the two maps for its basemap. The Positron and the Dark Matter basemaps found [here](https://carto.com/blog/getting-to-know-positron-and-dark-matter/). The Positron map is used in the Camera Map menu to assist users to street names and routes while the DarkMatter map is used to assist in heatmap visualization in order to predict the change traffic patterns over time.
 
-### Business Overlays
+#### Business Overlays
 
 There are 6 business overlays included in this application. All of them are clustered into groups. Those are:    
 -  Stores
@@ -65,7 +77,7 @@ There are 6 business overlays included in this application. All of them are clus
 
 Services are a vague term to incorporate businesses that are not categorized into the other 5 categories.  This does not include home based businesses.  As the map is zoomed in, the clusters become more dispersed and each individual business icon is shown more in detail. In order to view the name of the business, the cursor must be hovered ontop of the icon. 
 
-### Nearby Cameras of Businesses
+#### Nearby Cameras of Businesses
 
 As you may notice, there is another option in the business overlays' drop-down called **"Nearby Cams"**. This toggle control will allow you to locate the nearby cameras upon selecting on a business marker and to view the traffic counts captured by them in the explorer panel. This is
 aimed to give user a brief understanding of the nearby traffic states.
@@ -77,16 +89,10 @@ The **range** within which you wish to find nearby cameras can also be customize
 <img src="./help-images/biz_nearby_cams.png" raw=true alt="Nearby Cams" style="width: 30%; height: auto; padding: 30px;"/>
 </p>
 
-### Heatmap
-
-An option to switch to the heatmap view is provided on the sidebar on the left labelled `Heatmap`. Similar to the basemap in the `Camera Map`, the heatmap has boundaries of all the neighbourhoods of Surrey. However unlike the boundaries found in `Camera Map`, where the user can filter out individual neighbourhoods, the boundaries for `Heatmap`is only fixed to the entire city of Surrey. As of now, the heatmap only displays car count. 
-
-The slider ranges from `2020-12-01 00:00 to 2020-12-31 23:59`. Each tick within the slider represents a one hour change in the traffic pattern. All the overlays except the 'Nearby Cams' feature are functional when the heatmap is toggled. The intensity (also known as the color) of the heatmap is dependent on the volume of the car count in a camera locations. Car counts with higher traffic are highlighted in deep red while lower car counts are labelled in light peach. The interval levels are heuristically determined by the `addHeatmap()` function. An ongoing issue with the heatmap is that in higher traffic volumes, the heatmap flashes. Currently, this is a bug that will be hopefully solved soon.
-
-### Bicyle Routes
+#### Bicyle Routes
 An overlay of bicycle routes is included in this application along with the overlay panels. Proposed bicycle routes are not included in this overlay. To view the bicycle routes, ensure that the label "Bike Routes " is checked. The bicycle routes are coloured in 7 types. This is shown in the legend listed in the top left corner. It is important to note that the legend is partially hidden from the menu and is undraggable. In order to fully view the legend, the panel (with  the 3 bars) must be collapsed.
 
-### Neighbourhood Filters 
+#### Neighbourhood Filters 
 A selection of neighbourhoods is available for selection. The following neighbourhoods are:
 -  City Centre for `CITY CENTRE` 
 -  Cloverdale for `CLOVERDALE`
@@ -97,6 +103,11 @@ A selection of neighbourhoods is available for selection. The following neighbou
 
 The option panel is on the left hand side and it is titled "Select a Neighbourhood". The default selected is `SURREY`, where it displays all the neighbourhoods within the city of Surrey. When a neighbourhood is selected, the map will shift its view to the selected neighbourhood.
 
+### Heatmap
+
+An option to switch to the heatmap view is provided on the sidebar on the left labelled `Heatmap`. Similar to the basemap in the `Camera Map`, the heatmap has boundaries of all the neighbourhoods of Surrey. However unlike the boundaries found in `Camera Map`, where the user can filter out individual neighbourhoods, the boundaries for `Heatmap`is only fixed to the entire city of Surrey. As of now, the heatmap only displays car count. 
+
+The slider ranges from `2020-12-01 00:00 to 2020-12-31 23:59`. Each tick within the slider represents a one hour change in the traffic pattern. All the overlays except the 'Nearby Cams' feature are functional when the heatmap is toggled. The intensity (also known as the color) of the heatmap is dependent on the volume of the car count in a camera locations. Car counts with higher traffic are highlighted in deep red while lower car counts are labelled in light peach. The interval levels are heuristically determined by the `addHeatmap()` function. An ongoing issue with the heatmap is that in higher traffic volumes, the heatmap flashes. Currently, this is a bug that will be hopefully solved soon.
 
 
 
