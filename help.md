@@ -23,10 +23,15 @@ In general the app uses the two maps for its basemap. The Positron and the Dark 
 ### Cams Map
 
 #### Traffic Explorer
-The traffic explorer panel contains a line plot of `Vehicle Counts vs Time`. Users may choose to modify the input controls on the left side menu and select a camera station to view its traffic states under different conditions. 
+The traffic explorer panel acts as the core **visualization** tool for the traffic states under different scenarios. It displays a scatter plot of `Vehicle Counts` VS `Time`, and users may choose to filter on specific vehicle type, camera stations and date-time ranges to examine any trend or pattern. There is also a play button attached to the time slider, allowing the user to view the animation of changes in vehicle counts over time.
+
+<p align="center">
+<img src="./help-images/explorer.png" raw=true alt="Nearby Cams" style="width: 30%; height: auto; padding: 30px;"/>
+<img src="./help-images/sliders.png" raw=true alt="Adjust Radius" style="width: 30%; height: auto; padding: 30px;"/>
+</p>
 
 #### Multi-camera Selection
-The Cams Map now supports multi-camera selection and auto-focus on the currently selected camera. Users can select a new camera station either through the select input in the side menu or through a marker click, and can deselect by clicking on the highlighted marker again. 
+The Cams Map is supporting **multi-camera selection** and **auto-focus** on the current selected camera. Users can select a new camera station either through the select input in the side menu or a marker click, and can deselect by clicking on the highlighted marker again. 
 
 #### Real-time Camera Image Toggle
 TODO
@@ -54,13 +59,15 @@ The pair of **comparable** cameras are identified as either:
 
 **Note**: The nearest neighbor is not always symmetric, and the next-selected camera has to be the nearest neighbor to the prev-selected camera, i.e. if camera a's nearest neighbor is camera b, yet camera b's nearest neighbor is camera c, then you should select a then b to form a valid pair, but not the other way round.
 
-Our `Same-intersection & Nearest-neighbor Cameras' Car Count Comparison(AM VS PM)` table feature keeps track of the current selected cameras and will perform and demonstrate the results of a **paired**(same-intersection)/**two-sample**(nearest-neighbor) t-test of the cameras' car count over AM and PM rush hours within a specified date range **only if** they meet the requirements for comparable cameras above. 
+Our `Same-intersection & Nearest-neighbor Cameras' Car Count Comparison(AM VS PM)` table feature keeps track of the current selected cameras and will perform and demonstrate the results of a **paired**(same-intersection)/**two-sample**(nearest-neighbor) t-test of the cameras' car count over AM and PM rush hours within a date range **only if** they meet the requirements for comparable cameras above. 
+
+The date range is customizable through a slider input control in the left side menu, and the user is also able to toggle on **weekdays only** in the explorer panel, considering the fact that rush hour effects are more consistent during weekdays.
 
 <p align="center">
 <img src="./help-images/comparison_table.png" raw=true alt="Comparison Table" style="width: 30%; height: auto; padding=30px"/>
 </p>
 
-Overall, based on the December 2020's hourly data, there has been found a **greater** difference during **PM** rush hours compared to AM. However, this may vary across different locations and requires further experiments with more data. 
+Overall, without considering the spatial effect, there has been found a **greater** difference during **PM** rush hours compared to AM based on the December 2020's hourly data. However, the results vary across different locations and may require further experiments with more data. 
 
 Notice that **camera metadata**(i.e. facing direction, angle, elevation) is another key factor which may induce significant differences across cameras even when they are considered as a valid pair. Due to the lack of data, this could be potentially included as a future improvement.
 
@@ -79,7 +86,7 @@ Services are a vague term to incorporate businesses that are not categorized int
 
 #### Nearby Cameras of Businesses
 
-As you may notice, there is another option in the business overlays' drop-down called **"Nearby Cams"**. This toggle control will allow you to locate the nearby cameras upon selecting on a business marker and to view the traffic counts captured by them in the explorer panel. This is
+As you may notice, there is another option in the business overlays' drop-down called `Nearby Cams`. This toggle control will allow you to locate the nearby cameras upon selecting on a business marker and to view the traffic counts captured by them in the explorer panel. This is
 aimed to give user a brief understanding of the nearby traffic states.
 
 The **range** within which you wish to find nearby cameras can also be customized through the `red gear button` on the top left corner, and the radius is adjustable in **meters** through a slider input. Notice that the current maximum number of nearby cameras is set to default **3** (considering the basic usage), so the highlighted cameras will not exceed 3 however you adjust the radius. 
