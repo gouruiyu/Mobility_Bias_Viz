@@ -50,9 +50,9 @@ Notice that the current used one is a preliminary version only effective to car 
 
 #### Same-intersection and Nearest-neighbor Cameras' Comparison
 
-Another key objective of the app is to conduct comparisons over a pair of **comparable** cameras to see if they share a similar traffic flow(i.e. vehicles counts) concurrently. AM(7-10) and PM(16-19) rush hours are targeted due to intense traffic activities over the periods. 
+Another key objective of the app is to conduct comparisons over a pair of **spatially correlated** cameras to see if they share similar traffic states(i.e. vehicles counts) concurrently. AM(7-10) and PM(16-19) rush hours are targeted due to intense traffic activities over the periods. 
 
-The pair of **comparable** cameras are identified as either:
+The pair of **spatially correlated** cameras are identified as either:
 
 - Two cameras installed on the **same intersection**
 - Two cameras which are **spatial nearest neighbors**
@@ -86,8 +86,7 @@ Services are a vague term to incorporate businesses that are not categorized int
 
 #### Nearby Cameras of Businesses
 
-As you may notice, there is another option in the business overlays' drop-down called `Nearby Cams`. This toggle control will allow you to locate the nearby cameras upon selecting on a business marker and to view the traffic counts captured by them in the explorer panel. This is
-aimed to give user a brief understanding of the nearby traffic states.
+As one may notice, there is another option in the business overlays' drop-down called `Nearby Cams`. This toggle control will allow the user to locate nearby cameras upon selecting on a business marker and to view the traffic counts captured by them in the explorer panel. This is aimed to give user a brief understanding of the nearby traffic states.
 
 The **range** within which you wish to find nearby cameras can also be customized through the `red gear button` on the top left corner, and the radius is adjustable in **meters** through a slider input. Notice that the current maximum number of nearby cameras is set to default **3** (considering the basic usage), so the highlighted cameras will not exceed 3 however you adjust the radius. 
 
