@@ -33,11 +33,7 @@ The traffic explorer panel acts as the core **visualization** tool for the traff
 #### Multi-camera Selection
 The Cams Map is supporting **multi-camera selection** and **auto-focus** on the current selected camera. Users can select a new camera station either through the select input in the side menu or a marker click, and can deselect by clicking on the highlighted marker again. 
 
-#### Real-time Camera Image Toggle
-TODO
-
 #### Undercounting Correction
-
 Traffic camera images, especially at busy intersections, suffer from high occlusion between vehicles and low resolution due to the hardware constraint. Current pipeline often fails to detect the semantic features when they interweave, thus is missing count when there is a long line-up. On the other hand, it is actually able to detect the vehicles correctly at far distance when traffic is free-of-flow since the cars are more apart. This leads to two consequences:
 
 - **saturation** of counts, the maximum vehicle count at the example intersection is capped at around 15 where one can easily find snapshot with 20+ cars under visual check. 
@@ -47,6 +43,14 @@ Traffic camera images, especially at busy intersections, suffer from high occlus
 Our `Correct for Undercount` feature uses a model learned from manually labeled traffic images (including number fo vehicle count and Queue/Free-of-Flow category) to add correction for this detection bias. It is expected to generate more reliable traffic data for cameras.
 
 Notice that the current used one is a preliminary version only effective to car counts. It is to be improved and generalized to other vehicle types in the future.
+
+#### Real-time Camera Image
+<p align="center">
+<img src="./help-images/realtime_image_toggle.png" raw=true alt="Realtime Image Toggle" style="width: 30%; height: auto; padding: 30px;"/>
+<img src="./help-images/camera_livefeed.png" raw=true alt="Camera Livefeed" style="width: 30%; height: auto; padding: 30px;"/>
+</p>
+When the toggle is active, **livefeed image** of the **current selected camera** (if multiple cameras are selected, the newest clicked one is the current selected camera) is displayed at the bottom left corner on the map.   
+The app fetches the image in realtime from the server endpoint provided by VanCom project. The frequency of livefeed update depends on the server.
 
 #### Same-intersection and Nearest-neighbor Cameras' Comparison
 
