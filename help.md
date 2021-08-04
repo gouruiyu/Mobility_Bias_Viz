@@ -122,7 +122,7 @@ An option to switch to the heatmap view is provided on the sidebar on the left l
 
 Similar to the basemap in the `Camera Map`, the heatmap has boundaries of all the neighbourhoods of Surrey. However unlike the boundaries found in `Camera Map`, where the user can filter out individual neighbourhoods, the boundaries for `Heatmap`is only fixed to the entire city of Surrey. 
 
-The intensity (also known as the color) of the heatmap is dependent on the volume of the car count in a camera locations. Car counts with higher traffic are highlighted in deep red while lower car counts are labelled in light peach. The interval levels are heuristically determined by the `addHeatmap()` function.
+The intensity, which is found in the different colour hues of different points of the heatmap, is dependent on the volume of the car count in a camera locations. Car counts with higher traffic are highlighted in deep red while lower car counts will be in light peach. The interval levels are heuristically determined by the `addHeatmap()` function. Additionally, all the overlays except the 'Nearby Cams' feature are functional when the heatmap is toggled.  
 
 <p align="center">
 <img src="./help-images/heatmap.png" raw=true style="width: 30%; height: auto; padding: 30px;"/>
@@ -133,7 +133,10 @@ The slider ranges from `2020-12-01 00:00 to 2020-12-31 23:59`. Each tick within 
 <img src="./help-images/heatmap_slider.png" raw=true style="width: 30%; height: auto; padding: 30px;"/>
 </p>
 
-All the overlays except the 'Nearby Cams' feature are functional when the heatmap is toggled.  An ongoing issue with the heatmap is that in higher traffic volumes, the heatmap flashes. Currently, this is a bug that will be hopefully resolved in later versions of this app.
+Similar to the traffic explorer slider, the time slider for the heatmap also has a play button attached which allows the user to view an animated visualization of the change in traffic intensity over time.
+
+
+An ongoing issue with the heatmap is that the user may experience flashes when the heatmap renders high traffic volumes, particularly in rush hour periods (from 6-10 AM to 3-7 PM. Currently, this is a bug that will be hopefully resolved in later versions of this app.
 
 
 
