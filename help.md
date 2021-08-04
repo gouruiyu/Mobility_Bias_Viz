@@ -115,14 +115,25 @@ The option panel is on the left hand side and it is titled "Select a Neighbourho
 
 ### Heatmap
 
-An option to switch to the heatmap view is provided on the sidebar on the left labelled `Heatmap`.
+An option to switch to the heatmap view is provided on the sidebar on the left labelled `Heatmap`. As of now, the heatmap only displays car count.
 <p align="center">
-<img src="./help-images/heatmap_tab.png" raw=true alt="Nearby Cams" style="width: 30%; height: auto; padding: 30px;"/>
+<img src="./help-images/heatmap_tab.png" raw=true style="width: 30%; height: auto; padding: 30px;"/>
 </p>
 
-Similar to the basemap in the `Camera Map`, the heatmap has boundaries of all the neighbourhoods of Surrey. However unlike the boundaries found in `Camera Map`, where the user can filter out individual neighbourhoods, the boundaries for `Heatmap`is only fixed to the entire city of Surrey. As of now, the heatmap only displays car count. 
+Similar to the basemap in the `Camera Map`, the heatmap has boundaries of all the neighbourhoods of Surrey. However unlike the boundaries found in `Camera Map`, where the user can filter out individual neighbourhoods, the boundaries for `Heatmap`is only fixed to the entire city of Surrey. 
 
-The slider ranges from `2020-12-01 00:00 to 2020-12-31 23:59`. Each tick within the slider represents a one hour change in the traffic pattern. All the overlays except the 'Nearby Cams' feature are functional when the heatmap is toggled. The intensity (also known as the color) of the heatmap is dependent on the volume of the car count in a camera locations. Car counts with higher traffic are highlighted in deep red while lower car counts are labelled in light peach. The interval levels are heuristically determined by the `addHeatmap()` function. An ongoing issue with the heatmap is that in higher traffic volumes, the heatmap flashes. Currently, this is a bug that will be hopefully solved soon.
+The intensity (also known as the color) of the heatmap is dependent on the volume of the car count in a camera locations. Car counts with higher traffic are highlighted in deep red while lower car counts are labelled in light peach. The interval levels are heuristically determined by the `addHeatmap()` function.
+
+<p align="center">
+<img src="./help-images/heatmap.png" raw=true style="width: 30%; height: auto; padding: 30px;"/>
+</p>
+
+The slider ranges from `2020-12-01 00:00 to 2020-12-31 23:59`. Each tick within the slider represents a one hour change in the traffic pattern.
+<p align="center">
+<img src="./help-images/heatmap_slider.png" raw=true style="width: 30%; height: auto; padding: 30px;"/>
+</p>
+
+All the overlays except the 'Nearby Cams' feature are functional when the heatmap is toggled.  An ongoing issue with the heatmap is that in higher traffic volumes, the heatmap flashes. Currently, this is a bug that will be hopefully resolved in later versions of this app.
 
 
 
