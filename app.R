@@ -179,7 +179,6 @@ plotVehicleCountWithTime <- function(df, dateRange, timeRange, vehicleType, week
   # Filter on weekdays only
   if (weekdayOnly == TRUE) df <- df[which(wday(df$date) %notin% c(6, 7)),]
   myplot <- ggplot(data=df, aes_string(y=vehicleType, x="time", color="station")) +
-    geom_point() +
     geom_smooth(method = 'loess', formula = 'y~x') +
     scale_x_datetime(date_breaks = "12 hours", date_labels = "%Y-%m-%d %H:%M", limits = as.POSIXct(paste(dateRange, hourRange), format="%Y-%m-%d %H:%M")) +
     xlab("Time(hour)") +
