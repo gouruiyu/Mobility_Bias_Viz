@@ -14,6 +14,7 @@ library(rlang)
 library(DT)
 library(nngeo)
 library(purrr)
+library(TTR)
 
 source("biz_data_clean.R")
 source("stats/ampm_comparison_model.R")
@@ -178,23 +179,26 @@ plotVehicleCountWithTime <- function(df, dateRange, timeRange, vehicleType, week
     filter(as_hms(time) >= hourRange[1] & as_hms(time) <= hourRange[2])
   # Filter on weekdays only
   if (weekdayOnly == TRUE) df <- df[which(wday(df$date) %notin% c(6, 7)),]
-  myplot <- ggplot(data=df, aes_string(y=vehicleType, x="time", color="station")) +
-    geom_smooth(method = 'loess', formula = 'y~x') +
-    scale_x_datetime(date_breaks = "12 hours", date_labels = "%Y-%m-%d %H:%M", limits = as.POSIXct(paste(dateRange, hourRange), format="%Y-%m-%d %H:%M")) +
-    xlab("Time(hour)") +
-    ylab(vehicleType) +
-    theme(axis.text.x = element_text(angle = 60, hjust = 1), legend.position="bottom")
+  # Adding moving average smoother with k=3
+  df$ma <- runMean(df[, vehicleType], 3)
+  myplot <- ggplot(data=df, aes_string(x="time", y=vehicleType, color="station"))
   
   if (!displayCorrection) {
     myplot <- myplot +
-      geom_point()
+      geom_point() +
+      geom_line(aes(y=ma)) + 
+      scale_x_datetime(date_breaks = "12 hours", date_labels = "%Y-%m-%d %H:%M", limits = as.POSIXct(paste(dateRange, hourRange), format="%Y-%m-%d %H:%M")) +
+      xlab("Time(hour)") +
+      ylab(vehicleType) +
+      theme(axis.text.x = element_text(angle = 60, hjust = 1), legend.position="bottom")
   } else {
     # Bias corrected line
     pred <- predict(uc_correction_model, newdata=data.frame(detected = df[[vehicleType]]))
+    pred_ma <- runMean(pred, 3)
     myplot <- myplot + 
-      geom_point(data=df, aes(y=pred))
+      geom_point(data=df, aes(y=pred)) + 
+      geom_line(aes(y=pred_ma))
   }
-  myplot <- myplot + geom_smooth(method = 'loess', formula = 'y~x')
   return(myplot)
 }
 
