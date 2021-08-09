@@ -186,11 +186,7 @@ plotVehicleCountWithTime <- function(df, dateRange, timeRange, vehicleType, week
   if (!displayCorrection) {
     myplot <- myplot +
       geom_point() +
-      geom_line(aes(y=ma)) + 
-      scale_x_datetime(date_breaks = "12 hours", date_labels = "%Y-%m-%d %H:%M", limits = as.POSIXct(paste(dateRange, hourRange), format="%Y-%m-%d %H:%M")) +
-      xlab("Time(hour)") +
-      ylab(vehicleType) +
-      theme(axis.text.x = element_text(angle = 60, hjust = 1), legend.position="bottom")
+      geom_line(aes(y=ma))
   } else {
     # Bias corrected line
     pred <- predict(uc_correction_model, newdata=data.frame(detected = df[[vehicleType]]))
@@ -199,6 +195,11 @@ plotVehicleCountWithTime <- function(df, dateRange, timeRange, vehicleType, week
       geom_point(data=df, aes(y=pred)) + 
       geom_line(aes(y=pred_ma))
   }
+  myplot <- myplot +
+    scale_x_datetime(date_breaks = "12 hours", date_labels = "%Y-%m-%d %H:%M", limits = as.POSIXct(paste(dateRange, hourRange), format="%Y-%m-%d %H:%M")) +
+    xlab("Time(hour)") +
+    ylab(vehicleType) +
+    theme(axis.text.x = element_text(angle = 60, hjust = 1), legend.position="bottom")
   return(myplot)
 }
 
