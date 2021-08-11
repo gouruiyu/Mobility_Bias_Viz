@@ -271,7 +271,8 @@ ui <- dashboardPage(
                                             label = 'Choose your smoothing window size k([1,30]):',
                                             value = 3,
                                             min = K_MIN,
-                                            max = K_MAX),
+                                            max = K_MAX,
+                                            width = "300px"),
                                   collapsible = T,
                                   width = "fit-content", height = "auto"
                                 )),
