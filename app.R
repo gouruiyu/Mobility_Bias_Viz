@@ -15,6 +15,7 @@ library(DT)
 library(nngeo)
 library(purrr)
 library(TTR)
+library(shinyvalidate)
 
 source("biz_data_clean.R")
 source("stats/ampm_comparison_model.R")
@@ -67,6 +68,8 @@ SURREY_LAT <- 49.15
 SURREY_LNG <- -122.8
 ZOOM_MIN = 10
 ZOOM_MAX = 18
+K_MIN <- 1
+K_MAX <- 30
 
 ########## UI ##########
 
@@ -155,7 +158,7 @@ baseHeatmap <- leaflet(options = leafletOptions(minZoom = ZOOM_MIN, maxZoom = ZO
 
 
 
-plotVehicleCountWithTime <- function(df, dateRange, timeRange, vehicleType, weekdayOnly, displayCorrection=FALSE) {
+plotVehicleCountWithTime <- function(df, dateRange, timeRange, vehicleType, weekdayOnly, kSmooth, displayCorrection=FALSE) {
   if (nrow(df) == 0) {
     return(ggplot() + # Draw ggplot2 plot with text only
              annotate("text",
@@ -179,8 +182,8 @@ plotVehicleCountWithTime <- function(df, dateRange, timeRange, vehicleType, week
     filter(as_hms(time) >= hourRange[1] & as_hms(time) <= hourRange[2])
   # Filter on weekdays only
   if (weekdayOnly == TRUE) df <- df[which(wday(df$date) %notin% c(6, 7)),]
-  # Adding moving average smoother with k=3
-  df$ma <- runMean(df[, vehicleType], 3)
+  # Adding moving average smoother with window size k
+  df$ma <- runMean(df[, vehicleType], kSmooth)
   myplot <- ggplot(data=df, aes_string(x="time", y=vehicleType, color="station")) + 
     scale_x_datetime(date_breaks = "12 hours", date_labels = "%Y-%m-%d %H:%M", limits = as.POSIXct(paste(dateRange, hourRange), format="%Y-%m-%d %H:%M")) +
     xlab("Time(hour)") +
@@ -194,7 +197,7 @@ plotVehicleCountWithTime <- function(df, dateRange, timeRange, vehicleType, week
   } else {
     # Bias corrected line
     pred <- predict(uc_correction_model, newdata=data.frame(detected = df[[vehicleType]]))
-    pred_ma <- runMean(pred, 3)
+    pred_ma <- runMean(pred, kSmooth)
     myplot <- myplot + 
       geom_point(data=df, aes(y=pred)) + 
       geom_line(aes(y=pred_ma))
@@ -264,11 +267,17 @@ ui <- dashboardPage(
                                   materialSwitch("weekdayOnly", label = "Weekdays Only", status = "primary", inline = TRUE, value = FALSE),
                                   materialSwitch("displayCorrection", label = "Correct for Undercount", status = "primary", inline = TRUE, value = FALSE),
                                   jqui_resizable(plotOutput("linePlotVehicleCounts", height = "200")),
+                                  numericInput(inputId = 'kSmooth',
+                                            label = 'Choose your smoothing window size k([1,30]):',
+                                            value = 3,
+                                            min = K_MIN,
+                                            max = K_MAX,
+                                            width = "300px"),
                                   collapsible = T,
                                   width = "fit-content", height = "auto"
                                 )),
                   jqui_resizable(absolutePanel(id = "comparison", class = "panel panel-default", fixed = TRUE,
-                                draggable = TRUE, top = 400, left = "auto", right = 60, bottom = "auto",
+                                draggable = TRUE, top = 450, left = "auto", right = 60, bottom = "auto",
                                 width = "300px", height = "auto",
                                 box(
                                   title = "Same-intersection & Nearest-neighbor Cameras' Car Count Comparisons(AM VS PM)",
@@ -376,6 +385,11 @@ server <- function(input, output, session) {
   
   saved_camId <- reactiveVal(isolate(input$camid))
   update <- reactiveVal(TRUE)
+  
+  iv <- InputValidator$new()
+  iv$add_rule("kSmooth", sv_between(K_MIN, K_MAX))
+  iv$enable()
+  kSmooth <- reactiveVal(isolate(input$kSmooth))
   
   # current selected business
   current_biz <- reactiveValues(id = NULL, data = NULL, lat = NULL, lng = NULL)
@@ -562,7 +576,10 @@ server <- function(input, output, session) {
   })
   
   # Update line plot             
-  observe({
+  observeEvent(input$kSmooth, {
+    if (!is.na(input$kSmooth) & input$kSmooth <= K_MAX & input$kSmooth >= K_MIN) {
+      kSmooth(input$kSmooth)
+    }
     output$linePlotVehicleCounts <- renderPlot({
       if (show_nn_cameras() & !is.null(nn_cameras$ids)) {
         nn_cameras$data <- cams_data %>% filter(station %in% nn_cameras$ids)
@@ -571,6 +588,7 @@ server <- function(input, output, session) {
                                  input$timeRange,
                                  input$vehicleType,
                                  input$weekdayOnly,
+                                 kSmooth(),
                                  input$displayCorrection)
       } else {
         plotVehicleCountWithTime(selected_cams$data, 
@@ -578,6 +596,7 @@ server <- function(input, output, session) {
                                  input$timeRange,
                                  input$vehicleType,
                                  input$weekdayOnly,
+                                 kSmooth(),
                                  input$displayCorrection)
       }
     })
