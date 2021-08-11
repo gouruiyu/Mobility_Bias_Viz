@@ -15,6 +15,7 @@ library(DT)
 library(nngeo)
 library(purrr)
 library(TTR)
+library(shinyvalidate)
 
 source("biz_data_clean.R")
 source("stats/ampm_comparison_model.R")
@@ -275,7 +276,7 @@ ui <- dashboardPage(
                                   width = "fit-content", height = "auto"
                                 )),
                   jqui_resizable(absolutePanel(id = "comparison", class = "panel panel-default", fixed = TRUE,
-                                draggable = TRUE, top = 400, left = "auto", right = 60, bottom = "auto",
+                                draggable = TRUE, top = 450, left = "auto", right = 60, bottom = "auto",
                                 width = "300px", height = "auto",
                                 box(
                                   title = "Same-intersection & Nearest-neighbor Cameras' Car Count Comparisons(AM VS PM)",
@@ -384,6 +385,9 @@ server <- function(input, output, session) {
   saved_camId <- reactiveVal(isolate(input$camid))
   update <- reactiveVal(TRUE)
   
+  iv <- InputValidator$new()
+  iv$add_rule("kSmooth", sv_between(K_MIN, K_MAX))
+  iv$enable()
   kSmooth <- reactiveVal(isolate(input$kSmooth))
   
   # current selected business
@@ -572,7 +576,7 @@ server <- function(input, output, session) {
   
   # Update line plot             
   observeEvent(input$kSmooth, {
-    if (!is.na(input$kSmooth) & input$kSmooth %in% c(K_MIN, K_MAX)) {
+    if (!is.na(input$kSmooth) & input$kSmooth <= K_MAX & input$kSmooth >= K_MIN) {
       kSmooth(input$kSmooth)
     }
     output$linePlotVehicleCounts <- renderPlot({
