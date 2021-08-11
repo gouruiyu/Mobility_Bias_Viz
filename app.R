@@ -67,6 +67,8 @@ SURREY_LAT <- 49.15
 SURREY_LNG <- -122.8
 ZOOM_MIN = 10
 ZOOM_MAX = 18
+K_MIN <- 1
+K_MAX <- 30
 
 ########## UI ##########
 
@@ -265,10 +267,10 @@ ui <- dashboardPage(
                                   materialSwitch("displayCorrection", label = "Correct for Undercount", status = "primary", inline = TRUE, value = FALSE),
                                   jqui_resizable(plotOutput("linePlotVehicleCounts", height = "200")),
                                   numericInput(inputId = 'kSmooth',
-                                            label = 'Choose your smoothing window size k([1, 30]):',
+                                            label = 'Choose your smoothing window size k([1,30]:',
                                             value = 3,
-                                            min = 1,
-                                            max = 30),
+                                            min = K_MIN,
+                                            max = K_MAX),
                                   collapsible = T,
                                   width = "fit-content", height = "auto"
                                 )),
@@ -382,7 +384,7 @@ server <- function(input, output, session) {
   saved_camId <- reactiveVal(isolate(input$camid))
   update <- reactiveVal(TRUE)
   
-  kSmooth <- reactiveVal()
+  kSmooth <- reactiveVal(isolate(input$kSmooth))
   
   # current selected business
   current_biz <- reactiveValues(id = NULL, data = NULL, lat = NULL, lng = NULL)
@@ -570,7 +572,7 @@ server <- function(input, output, session) {
   
   # Update line plot             
   observeEvent(input$kSmooth, {
-    if (!is.na(input$kSmooth)) {
+    if (!is.na(input$kSmooth) & input$kSmooth %in% c(K_MIN, K_MAX)) {
       kSmooth(input$kSmooth)
     }
     output$linePlotVehicleCounts <- renderPlot({
