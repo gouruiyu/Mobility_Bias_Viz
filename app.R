@@ -68,8 +68,8 @@ SURREY_LAT <- 49.15
 SURREY_LNG <- -122.8
 ZOOM_MIN = 10
 ZOOM_MAX = 18
-K_MIN <- 1
-K_MAX <- 30
+K_MIN <- 0
+K_MAX <- 1
 
 ########## UI ##########
 
@@ -183,7 +183,7 @@ plotVehicleCountWithTime <- function(df, dateRange, timeRange, vehicleType, week
   # Filter on weekdays only
   if (weekdayOnly == TRUE) df <- df[which(wday(df$date) %notin% c(6, 7)),]
   # Adding moving average smoother with window size k
-  df$ma <- runMean(df[, vehicleType], kSmooth)
+  # df$ma <- runMean(df[, vehicleType], kSmooth)
   myplot <- ggplot(data=df, aes_string(x="time", y=vehicleType, color="station")) + 
     scale_x_datetime(date_breaks = "12 hours", date_labels = "%Y-%m-%d %H:%M", limits = as.POSIXct(paste(dateRange, hourRange), format="%Y-%m-%d %H:%M")) +
     xlab("Time(hour)") +
@@ -192,15 +192,17 @@ plotVehicleCountWithTime <- function(df, dateRange, timeRange, vehicleType, week
   
   if (!displayCorrection) {
     myplot <- myplot +
-      geom_line(aes(y=ma)) + 
-      geom_point()
+      # geom_line(aes(y=ma)) + 
+      geom_point() +
+      geom_smooth(method = "loess", formula = "y ~ x", span = kSmooth)
   } else {
     # Bias corrected line
     pred <- predict(uc_correction_model, newdata=data.frame(detected = df[[vehicleType]]))
-    pred_ma <- runMean(pred, kSmooth)
+    # pred_ma <- runMean(pred, kSmooth)
     myplot <- myplot + 
-      geom_point(data=df, aes(y=pred)) + 
-      geom_line(aes(y=pred_ma))
+      geom_point(data=df, aes(y=pred)) +
+      geom_smooth(method = "loess", formula = "y ~ x", span = kSmooth)
+      # geom_line(aes(y=pred_ma))
   }
   return(myplot)
 }
@@ -268,10 +270,11 @@ ui <- dashboardPage(
                                   materialSwitch("displayCorrection", label = "Correct for Undercount", status = "primary", inline = TRUE, value = FALSE),
                                   jqui_resizable(plotOutput("linePlotVehicleCounts", height = "200")),
                                   numericInput(inputId = 'kSmooth',
-                                            label = 'Choose your smoothing window size k([1,30]):',
-                                            value = 3,
+                                            label = 'Choose your span size for smoothing((0,1]):',
+                                            value = 0.75,
                                             min = K_MIN,
                                             max = K_MAX,
+                                            step = 0.5,
                                             width = "300px"),
                                   collapsible = T,
                                   width = "fit-content", height = "auto"
