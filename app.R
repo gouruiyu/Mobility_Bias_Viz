@@ -274,7 +274,7 @@ ui <- dashboardPage(
                                             value = 0.75,
                                             min = K_MIN,
                                             max = K_MAX,
-                                            step = 0.5,
+                                            step = 0.05,
                                             width = "300px"),
                                   collapsible = T,
                                   width = "fit-content", height = "auto"
