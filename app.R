@@ -390,7 +390,7 @@ server <- function(input, output, session) {
   update <- reactiveVal(TRUE)
   
   iv <- InputValidator$new()
-  iv$add_rule("kSmooth", sv_between(K_MIN, K_MAX))
+  iv$add_rule("kSmooth", sv_between(K_MIN, K_MAX, inclusive = c(FALSE, TRUE)))
   iv$enable()
   kSmooth <- reactiveVal(isolate(input$kSmooth))
   
@@ -580,7 +580,7 @@ server <- function(input, output, session) {
   
   # Update line plot             
   observeEvent(input$kSmooth, {
-    if (!is.na(input$kSmooth) & input$kSmooth <= K_MAX & input$kSmooth >= K_MIN) {
+    if (!is.na(input$kSmooth) & input$kSmooth <= K_MAX & input$kSmooth > K_MIN) {
       kSmooth(input$kSmooth)
     }
     output$linePlotVehicleCounts <- renderPlot({
