@@ -1,6 +1,7 @@
 # Mobility_Bias_Viz
 
 Unbiased mobility viz is a visualization spin-off from the [CAS X UBC DSSG unbiased mobility project](https://github.com/cedaracademysociety/vancom-ubc-dssg).
+Full Project Report can be found [here](https://github.com/ubc-dssg/ubc-dssg.github.io/blob/main/2021_traffic_report.md).
 
 ## Introduction
 // TODO
